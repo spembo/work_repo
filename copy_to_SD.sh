@@ -93,6 +93,27 @@ set_file_sys_tables(){
 }
 
 
+# copy MLO
+copy_MLO(){
+    echo "Copy MLO"
+    sudo cp -v ${BBB_U_DIR}/u-boot/MLO /${SD_CARD_BOOT}
+    RESULT=$?
+    if [ $RESULT -ne 0 ]; then
+        echo "ERROR"
+    fi
+}
+
+
+# copy u-boot.img
+copy_uboot_img(){
+    echo "Copy u-boot.img"
+    sudo cp -v ${BBB_U_DIR}/u-boot/u-boot.img /${SD_CARD_BOOT}
+    RESULT=$?
+    if [ $RESULT -ne 0 ]; then
+        echo "ERROR"
+    fi
+}
+
 
 # user menu
 PS3="Choose copy operation: "
@@ -103,6 +124,8 @@ OPTIONS=( 'Do all'
           'Copy dtbs'
           'Copy Kernel Modules'
           'Set File Systems Table (/etc/fstab)'
+          'Copy MLO'
+          'Copy u-boot.img'
           'Exit'
          )
 
@@ -116,6 +139,8 @@ do
             copy_dtb
             copy_modules
             set_file_sys_tables
+            copy_MLO
+            copy_uboot_img
             break
             ;;
         "Copy Root File System")
@@ -143,6 +168,14 @@ do
             set_file_sys_tables
             break
             ;;
+        "Copy MLO")
+            copy_MLO
+            break
+            ;;
+        "Copy u-boot.img")
+            copy_uboot_img
+            break
+            ;;
         "Exit")
             break
             ;;
@@ -154,12 +187,6 @@ do
 done
 
 echo "Complete!"
-
-
-
-
-
-
 
 
 
