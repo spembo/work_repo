@@ -1,0 +1,79 @@
+############################################################
+TODO:
+    start up board and check kerna args in /proc/cmdline
+    grep root file system to find where args are kept (uEnv is empty)
+
+    should copy to sd card wipe first?
+############################################################
+
+
+// CHANGES MADE TO UBUNTU ----------------------------------
+login:          ubuntu : temppwd            root   : root
+
+SD CARD:
+    /u-boot/MLO
+    /u-boot/u-boot.img
+    copy_root_fs        ---> media/sam/rootfs
+    set_uname_in_uenv   ---> media/sam/rootfs/boot/uEnv.txt
+    copy_zImage         ---> media/sam/rootfs/boot/vmlinuz
+    copy_dtb            ---> media/sam/rootfs/boot/dtbs/xxx/
+    copy_modules        ---> media/sam/rootfs
+    set_file_sys_tables ---> !?!?!?!
+
+
+TFTP:
+    dont really need TFTP until configuring kernel
+
+NFS:
+    having NFS will help with DTB and module dev
+
+
+
+// CHANGES MADE TO UBUNTU ----------------------------------
+update:         sudo apt-get update
+install make:   sudo apt-get install build-essential
+install nano:   sudo apt-get install nano
+
+install kernel headers:     sudo apt-get install kernel-headers-5.4.109-bone48
+
+change root password:       su; sudo passwd
+
+ssh permit root login:  nano /etc/ssh/sshd_config
+                        --->    PermitRootLogin yes
+                        systemctl restart sshd
+                        
+install dtc:    sudo apt-get install device-tree-compiler
+
+
+
+// NFS ------------------------------------------------------
+
+
+
+                        
+// FOR MODULES ----------------------------------------------
+echo 8 > /proc/sys/kernel/printk
+
+scp testdriver.ko ubuntu@192.168.1.80:/home/ubuntu/
+
+read out running device tree:
+    dtc -I fs -O dts /sys/firmware/devicetree/base
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                       
