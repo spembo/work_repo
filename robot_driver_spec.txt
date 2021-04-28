@@ -1,0 +1,65 @@
+/*******************************************************************************
+ * HARDWARE
+ ******************************************************************************/
+
+Inputs:
+MPU-9250    axis sensor             PID feedback
+VL53L0X     proximity sensor        motion control
+
+
+Outputs:
+TB6621FNG   motor driver            motor control
+
+
+
+/*******************************************************************************
+ * SOFTWARE STRUCTURE
+ ******************************************************************************/
+Control app runs PID between MPU-9250 and TB6621FNG to keep the robot upright.
+VL53L0X is used to move robot around.
+
+Driver: MPU-9520    --> control app -->     Driver: TB6621FNG
+Driver: VL53L0X     -->
+
+
+
+/*******************************************************************************
+ * Driver: MPU-9520
+ ******************************************************************************/
+Receives axis data over I2C. Only x-axis required.
+TxRx: i2c
+
+
+
+/*******************************************************************************
+ * Driver: VL53L0X
+ ******************************************************************************/
+
+
+/*******************************************************************************
+ * Driver: TB6621FNG
+ ******************************************************************************/
+Chip can control 2 motors. One driver per chip.
+
+Tx: GPIO    STBY        1 = enable
+
+    GPIO    AIN1        controls direction / brake
+    GPIO    AIN2        "
+    PWM     PWMA        speed
+
+    GPIO    BIN1
+    GPIO    BIN2
+    PWM     PWMB
+
+
+
+
+
+
+
+
+
+
+
+
+

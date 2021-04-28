@@ -1,0 +1,29 @@
+
+am335x-boneblack.dts
+    #include "am33xx.dtsi"
+    #include "am335x-bone-common.dtsi"
+    #include "am335x-boneblack-common.dtsi"
+
+am33xx.dtsi
+    #include <dt-bindings/bus/ti-sysc.h>
+    #include <dt-bindings/gpio/gpio.h>
+    #include <dt-bindings/pinctrl/am33xx.h>
+    #include <dt-bindings/clock/am3.h>
+
+    #include "am33xx-l4.dtsi"
+    #include "am33xx-clocks.dtsi"
+
+am335x-bone-common.dtsi
+
+am335x-boneblack-common.dtsi
+    #include <dt-bindings/display/tda998x.h>
+    #include <dt-bindings/interrupt-controller/irq.h>
+
+
+
+
+
+
+
+
+
