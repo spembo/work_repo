@@ -1,0 +1,11 @@
+dts log:
+
+ORIGINAL:
+am335x-boneblack.dts        723  bytes
+am335x-boneblack.dtb        89.8 kb
+
+
+REBUILD:
+am335x-boneblack.dts        749  bytes
+am335x-boneblack.dtb        90.0 kb
+

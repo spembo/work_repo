@@ -13,21 +13,32 @@ SD_CARD_PATH=media/${USER}
 SD_CARD_ROOT_FS=${SD_CARD_PATH}/ROOT_FS
 SD_CARD_BOOT=${SD_CARD_PATH}/BOOT
 
+# Copy fail flags
+FLAG_COPY_ROOT_FS=0
+FLAG_SET_UNAME=0
+FLAG_COPY_ZIMAGE=0
+FLAG_COPY_DTB=0
+FLAG_COPY_MODULES=0
+FLAG_SET_FSTAB=0
+FLAG_COPY_MLO=0
+FLAG_COPY_UBOOT=0
+
 
 # Copy Root File System
 copy_root_fs() {
     echo "Copying root file system"
-    sudo tar xfvp ${BBB_U_DIR}/*-*-*-armhf-*/armhf-rootfs-*.tar -C /${SD_CARD_ROOT_FS}/
-    RESULT=$?
-    if [ $RESULT -ne 0 ]; then
-        echo "ERROR"
+
+    if [[ -d /${SD_CARD_ROOT_FS} ]]; then
+        sudo tar xfvp ${BBB_U_DIR}/*-*-*-armhf-*/armhf-rootfs-*.tar -C /${SD_CARD_ROOT_FS}/
+    else
+        FLAG_COPY_ROOT_FS=1
     fi
     
     sudo chown root:root /${SD_CARD_ROOT_FS}
     sudo chmod 755 /${SD_CARD_ROOT_FS}
     RESULT=$?
     if [ $RESULT -ne 0 ]; then
-        echo "ERROR"
+        FLAG_COPY_ROOT_FS=1
     fi
 }
 
@@ -35,10 +46,11 @@ copy_root_fs() {
 # Set uname_r in /boot/uEnv.txt
 set_uname_in_uenv(){
     echo "Set uname_r in /boot/uEnv.txt"
-    sudo sh -c "echo 'uname_r=${KERNEL_VERSION}' >> /${SD_CARD_ROOT_FS}/boot/uEnv.txt"
-    RESULT=$?
-    if [ $RESULT -ne 0 ]; then
-        echo "ERROR"
+
+    if [[ -d /${SD_CARD_ROOT_FS}/boot/ ]]; then
+        sudo sh -c "echo 'uname_r=${KERNEL_VERSION}' >> /${SD_CARD_ROOT_FS}/boot/uEnv.txt"
+    else
+        FLAG_SET_UNAME=1
     fi
 }
 
@@ -46,10 +58,11 @@ set_uname_in_uenv(){
 # Copy Kernel Image
 copy_zImage(){
     echo "Copy Kernel Image"
-    sudo cp -v ${BBB_U_DIR}/bb-kernel/deploy/${KERNEL_VERSION}.zImage /${SD_CARD_ROOT_FS}/boot/vmlinuz-${KERNEL_VERSION}
-    RESULT=$?
-    if [ $RESULT -ne 0 ]; then
-        echo "ERROR"
+
+    if [[ -d /${SD_CARD_ROOT_FS}/boot/ ]]; then
+        sudo cp -v ${BBB_U_DIR}/bb-kernel/deploy/${KERNEL_VERSION}.zImage /${SD_CARD_ROOT_FS}/boot/vmlinuz-${KERNEL_VERSION}
+    else
+        FLAG_COPY_ZIMAGE=1
     fi
 }
 
@@ -57,16 +70,17 @@ copy_zImage(){
 # Copy Kernel Device Tree Binaries
 copy_dtb(){
     echo "Copy Kernel Device Tree Binaries"
-    sudo mkdir -p /${SD_CARD_ROOT_FS}/boot/dtbs/${KERNEL_VERSION}/
-    RESULT=$?
-    if [ $RESULT -ne 0 ]; then
-        echo "ERROR"
+
+    if [[ -d /${SD_CARD_ROOT_FS}/boot ]]; then
+        sudo mkdir -p /${SD_CARD_ROOT_FS}/boot/dtbs/${KERNEL_VERSION}/
+    else
+        FLAG_COPY_DTB=1
     fi
     
     sudo tar xfv ${BBB_U_DIR}/bb-kernel/deploy/${KERNEL_VERSION}-dtbs.tar.gz -C /${SD_CARD_ROOT_FS}/boot/dtbs/${KERNEL_VERSION}/
     RESULT=$?
     if [ $RESULT -ne 0 ]; then
-        echo "ERROR"
+        FLAG_COPY_DTB=1
     fi
 }
 
@@ -74,10 +88,11 @@ copy_dtb(){
 # Copy Kernel Modules
 copy_modules(){
     echo "Copy Kernel Modules"
-    sudo tar xfv ${BBB_U_DIR}/bb-kernel/deploy/${KERNEL_VERSION}-modules.tar.gz -C /${SD_CARD_ROOT_FS}/
-    RESULT=$?
-    if [ $RESULT -ne 0 ]; then
-        echo "ERROR"
+
+    if [[ -d /${SD_CARD_ROOT_FS} ]]; then
+        sudo tar xfv ${BBB_U_DIR}/bb-kernel/deploy/${KERNEL_VERSION}-modules.tar.gz -C /${SD_CARD_ROOT_FS}/
+    else
+        FLAG_COPY_MODULES=1
     fi
 }
 
@@ -85,10 +100,11 @@ copy_modules(){
 # File Systems Table (/etc/fstab)
 set_file_sys_tables(){
     echo "Set File Systems Table (/etc/fstab)"
-    sudo sh -c "echo '${DISK}  /  auto  errors=remount-ro  0  1' >> /${SD_CARD_ROOT_FS}/etc/fstab"
-    RESULT=$?
-    if [ $RESULT -ne 0 ]; then
-        echo "ERROR"
+
+    if [[ -d /${SD_CARD_ROOT_FS}/etc/ ]]; then
+        sudo sh -c "echo '${DISK}  /  auto  errors=remount-ro  0  1' >> /${SD_CARD_ROOT_FS}/etc/fstab"
+    else
+       FLAG_SET_FSTAB=1
     fi
 }
 
@@ -96,10 +112,15 @@ set_file_sys_tables(){
 # copy MLO
 copy_MLO(){
     echo "Copy MLO"
-    sudo cp -v ${BBB_U_DIR}/u-boot/MLO /${SD_CARD_BOOT}
+
+    if [[ -d /${SD_CARD_ROOT_FS}/etc/ ]]; then
+        sudo cp -v ${BBB_U_DIR}/u-boot/MLO /${SD_CARD_BOOT}
+    else
+        FLAG_COPY_MLO=1
+    fi
     RESULT=$?
     if [ $RESULT -ne 0 ]; then
-        echo "ERROR"
+        FLAG_COPY_MLO=1
     fi
 }
 
@@ -110,7 +131,7 @@ copy_uboot_img(){
     sudo cp -v ${BBB_U_DIR}/u-boot/u-boot.img /${SD_CARD_BOOT}
     RESULT=$?
     if [ $RESULT -ne 0 ]; then
-        echo "ERROR"
+        FLAG_COPY_UBOOT=1
     fi
 }
 
@@ -186,7 +207,67 @@ do
     esac
 done
 
+
+if [ $FLAG_COPY_ROOT_FS -ne 0 ]; then
+    echo "***** COPY ROOT FS FAILED!! ******************************************"
+fi
+
+if [ $FLAG_SET_UNAME -ne 0 ]; then
+    echo "***** SET UNAME IN UENV.TXT FAILED!! *********************************"
+fi
+
+if [ $FLAG_COPY_ZIMAGE -ne 0 ]; then
+    echo "***** COPY zIMAGE FAILED!! *******************************************"
+fi
+
+if [ $FLAG_COPY_DTB -ne 0 ]; then
+    echo "***** COPY DTB FAILED!! **********************************************"
+fi
+
+if [ $FLAG_COPY_MODULES -ne 0 ]; then
+    echo "***** COPY MODULES FAILED!! ******************************************"
+fi
+
+if [ $FLAG_SET_FSTAB -ne 0 ]; then
+    echo "***** SET FSTAB FAILED!! *********************************************"
+fi
+
+if [ $FLAG_COPY_MLO -ne 0 ]; then
+    echo "***** COPY MLO FAILED!! **********************************************"
+fi
+
+if [ $FLAG_COPY_UBOOT -ne 0 ]; then
+    echo "***** COPY UBOOT FAILED!! ********************************************"
+fi
+
 echo "Complete!"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
