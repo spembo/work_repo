@@ -30,6 +30,10 @@ copy_root_fs() {
 
     if [[ -d /${SD_CARD_ROOT_FS} ]]; then
         sudo tar xfvp ${BBB_U_DIR}/*-*-*-armhf-*/armhf-rootfs-*.tar -C /${SD_CARD_ROOT_FS}/
+        RESULT=$?
+        if [ $RESULT -ne 0 ]; then
+            FLAG_COPY_ROOT_FS=1
+        fi
     else
         FLAG_COPY_ROOT_FS=1
     fi
@@ -49,6 +53,10 @@ set_uname_in_uenv(){
 
     if [[ -d /${SD_CARD_ROOT_FS}/boot/ ]]; then
         sudo sh -c "echo 'uname_r=${KERNEL_VERSION}' >> /${SD_CARD_ROOT_FS}/boot/uEnv.txt"
+        RESULT=$?
+        if [ $RESULT -ne 0 ]; then
+            FLAG_SET_UNAME=1
+        fi
     else
         FLAG_SET_UNAME=1
     fi
@@ -61,6 +69,10 @@ copy_zImage(){
 
     if [[ -d /${SD_CARD_ROOT_FS}/boot/ ]]; then
         sudo cp -v ${BBB_U_DIR}/bb-kernel/deploy/${KERNEL_VERSION}.zImage /${SD_CARD_ROOT_FS}/boot/vmlinuz-${KERNEL_VERSION}
+        RESULT=$?
+        if [ $RESULT -ne 0 ]; then
+            FLAG_COPY_ZIMAGE=1
+        fi    
     else
         FLAG_COPY_ZIMAGE=1
     fi
@@ -73,6 +85,10 @@ copy_dtb(){
 
     if [[ -d /${SD_CARD_ROOT_FS}/boot ]]; then
         sudo mkdir -p /${SD_CARD_ROOT_FS}/boot/dtbs/${KERNEL_VERSION}/
+        RESULT=$?
+        if [ $RESULT -ne 0 ]; then
+            FLAG_COPY_DTB=1
+        fi 
     else
         FLAG_COPY_DTB=1
     fi
@@ -91,6 +107,10 @@ copy_modules(){
 
     if [[ -d /${SD_CARD_ROOT_FS} ]]; then
         sudo tar xfv ${BBB_U_DIR}/bb-kernel/deploy/${KERNEL_VERSION}-modules.tar.gz -C /${SD_CARD_ROOT_FS}/
+        RESULT=$?
+        if [ $RESULT -ne 0 ]; then
+            FLAG_COPY_MODULES=1
+        fi 
     else
         FLAG_COPY_MODULES=1
     fi
@@ -101,8 +121,12 @@ copy_modules(){
 set_file_sys_tables(){
     echo "Set File Systems Table (/etc/fstab)"
 
-    if [[ -d /${SD_CARD_ROOT_FS}/etc/ ]]; then
+    if [[ -d /${SD_CARD_ROOT_FS}/etc ]]; then
         sudo sh -c "echo '${DISK}  /  auto  errors=remount-ro  0  1' >> /${SD_CARD_ROOT_FS}/etc/fstab"
+        RESULT=$?
+        if [ $RESULT -ne 0 ]; then
+            FLAG_SET_FSTAB=1
+        fi 
     else
        FLAG_SET_FSTAB=1
     fi
@@ -113,13 +137,13 @@ set_file_sys_tables(){
 copy_MLO(){
     echo "Copy MLO"
 
-    if [[ -d /${SD_CARD_ROOT_FS}/etc/ ]]; then
+    if [[ -d /${SD_CARD_BOOT} ]]; then
         sudo cp -v ${BBB_U_DIR}/u-boot/MLO /${SD_CARD_BOOT}
+        RESULT=$?
+        if [ $RESULT -ne 0 ]; then
+            FLAG_COPY_MLO=1
+        fi
     else
-        FLAG_COPY_MLO=1
-    fi
-    RESULT=$?
-    if [ $RESULT -ne 0 ]; then
         FLAG_COPY_MLO=1
     fi
 }
@@ -128,9 +152,14 @@ copy_MLO(){
 # copy u-boot.img
 copy_uboot_img(){
     echo "Copy u-boot.img"
-    sudo cp -v ${BBB_U_DIR}/u-boot/u-boot.img /${SD_CARD_BOOT}
-    RESULT=$?
-    if [ $RESULT -ne 0 ]; then
+
+    if [[ -d /${SD_CARD_BOOT} ]]; then
+        sudo cp -v ${BBB_U_DIR}/u-boot/u-boot.img /${SD_CARD_BOOT}
+        RESULT=$?
+        if [ $RESULT -ne 0 ]; then
+            FLAG_COPY_UBOOT=1
+        fi
+    else
         FLAG_COPY_UBOOT=1
     fi
 }
