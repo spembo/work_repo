@@ -8,16 +8,17 @@ TODO:
 
 
 // CHANGES MADE TO UBUNTU ----------------------------------
+
 login:          ubuntu : temppwd            root   : root
 
 SD CARD:
-    /u-boot/MLO
-    /u-boot/u-boot.img
-    copy_root_fs        ---> media/sam/rootfs
-    set_uname_in_uenv   ---> media/sam/rootfs/boot/uEnv.txt
-    copy_zImage         ---> media/sam/rootfs/boot/vmlinuz
-    copy_dtb            ---> media/sam/rootfs/boot/dtbs/xxx/
-    copy_modules        ---> media/sam/rootfs
+    /u-boot/MLO         ---> media/sam/BOOT
+    /u-boot/u-boot.img  ---> media/sam/BOOT
+    copy_root_fs        ---> media/sam/ROOT_FS
+    set_uname_in_uenv   ---> media/sam/ROOT_FS/boot/uEnv.txt
+    copy_zImage         ---> media/sam/ROOT_FS/boot/vmlinuz
+    copy_dtb            ---> media/sam/ROOT_FS/boot/dtbs/xxx/
+    copy_modules        ---> media/sam/ROOT_FS
     set_file_sys_tables ---> !?!?!?!
 
 
@@ -42,7 +43,8 @@ ssh permit root login:  nano /etc/ssh/sshd_config
                         --->    PermitRootLogin yes
                         systemctl restart sshd
                         
-install dtc:    sudo apt-get install device-tree-compiler
+install dtc:    sudo apt-get update
+                sudo apt-get install device-tree-compiler
 
 
 

@@ -8,7 +8,7 @@
 //#include <dt-bindings/display/tda998x.h>
 //#include <dt-bindings/interrupt-controller/irq.h>
 
-&i2c0 {
+&i2c2 {
 	mpu9520: mpu9520@68 {
 		compatible = "inv,mpu9520";
 		reg = <0x68>;
