@@ -30,7 +30,7 @@
 #define REG_PWR_MGMT_1      0x6B
 #define REG_WHO_AM_I        0x75
 
-#define MPU9250_WHO_ID      0x71
+#define MPU9520_WHO_ID      0x71
 
 
 
@@ -42,8 +42,8 @@ static struct mpu9520_framework {
 
 
 struct mpu9520_drv {
-	struct device * dev;
 	struct i2c_client * client;
+	struct device * dev;
 	unsigned int minor;
 };
 
@@ -53,13 +53,14 @@ struct mpu9520_drv {
 /*******************************************************************************
  * device specific code
  ******************************************************************************/
-static int init_mpu9250(struct i2c_client *client)
+static int init_mpu9520(struct i2c_client *client)
 {   
     int ret = 0;
     uint8_t whoami;
 
+
     whoami = i2c_smbus_read_byte_data(client, REG_WHO_AM_I);
-    if (whoami != MPU9250_WHO_ID)
+    if (whoami != MPU9520_WHO_ID)
     {
         pr_err("MPU9530 - whoami not recognised \n");
         ret = -1;
@@ -91,45 +92,24 @@ static int init_mpu9250(struct i2c_client *client)
 }
 
 
-static int read_axis_data(struct mpu9520_drv * pDrv, int16_t * data)
+static int read_axis(struct i2c_client * client, int16_t * data, uint8_t reg_hi,
+                                                                uint8_t reg_lo)
 {
-    uint8_t raw_data_lsb, raw_data_msb;
-    struct i2c_client * client = pDrv->client;
-    int ret;
-    
-    /* get x axis */
-    raw_data_msb = i2c_smbus_read_byte_data(client, REG_ACCEL_XOUT_H);
-	if (raw_data_msb < 0)
-		return ret;
+    int32_t lsb, msb;
+       
+    msb = i2c_smbus_read_byte_data(client, reg_hi);
+	if (msb < 0){
+        pr_err("MPU9520 -i2c read error\n");
+		return msb;
+    }
 		
-    raw_data_lsb = i2c_smbus_read_byte_data(client, REG_ACCEL_XOUT_L);
-	if (raw_data_lsb < 0)
-		return ret;
+    lsb = i2c_smbus_read_byte_data(client, reg_lo);
+	if (lsb < 0){
+        pr_err("MPU9520 -i2c read error\n");
+		return lsb;
+    }
 		
-    *(data + 0) = (int16_t)(((int16_t)raw_data_msb << 8) | raw_data_lsb);
-
-    /* get y axis */
-    raw_data_msb = i2c_smbus_read_byte_data(client, REG_ACCEL_YOUT_H);
-	if (raw_data_msb < 0)
-		return ret;
-		
-    raw_data_lsb = i2c_smbus_read_byte_data(client, REG_ACCEL_YOUT_L);
-	if (raw_data_lsb < 0)
-		return ret;
-		
-    *(data + 1) = (int16_t)(((int16_t)raw_data_msb << 8) | raw_data_lsb);
-
-    /* get z axis */
-    raw_data_msb = i2c_smbus_read_byte_data(client, REG_ACCEL_ZOUT_H);
-	if (raw_data_msb < 0)
-		return ret;
-		
-    raw_data_lsb = i2c_smbus_read_byte_data(client, REG_ACCEL_ZOUT_L);
-	if (raw_data_lsb < 0)
-		return ret;
-		
-    *(data + 2) = (int16_t)(((int16_t)raw_data_msb << 8) | raw_data_lsb);
-    
+    *data = (int16_t)(((msb & 0x000000FF) << 8) | (lsb & 0x000000FF));   
     return 0;
 }
 
@@ -165,17 +145,21 @@ ssize_t mpu9520_read(struct file *file, char __user *buf, size_t count, loff_t *
 	char str[32];
     struct mpu9520_drv *pDrv = file->private_data;
 
-    pr_info("MPU9520 - attempting read\n");
-    ret = read_axis_data(pDrv, data);
+  
+    ret = read_axis(pDrv->client, &data[0], REG_ACCEL_XOUT_H, REG_ACCEL_XOUT_L);
+	if (ret)
+		return ret;
+		
+	ret = read_axis(pDrv->client, &data[1], REG_ACCEL_YOUT_H, REG_ACCEL_YOUT_L);
+	if (ret)
+		return ret;
+	
+	ret = read_axis(pDrv->client, &data[2], REG_ACCEL_ZOUT_H, REG_ACCEL_ZOUT_L);
 	if (ret)
 		return ret;
     
-    pr_info("MPU9520 - snprint\n");  
-	ret = snprintf(str, sizeof(str), "%d\n%d\n%d\n", data[0], 
-                                                     data[1], 
-                                                     data[2]);
-                                                     
-    pr_info("MPU9520 - copying to user\n");                                                     
+    
+	ret = snprintf(str, sizeof(str), "%d\n%d\n%d\n", data[0], data[1], data[2]);                                                                                       
 	if (copy_to_user(buf, str, ret))
 		ret = -EFAULT;
 
@@ -196,11 +180,68 @@ struct file_operations mpu9520_fops=
 
 
 /*******************************************************************************
+ * sysfs interface
+ ******************************************************************************/
+static ssize_t x_axis_show(struct device * dev, struct device_attribute *attr,
+			                                                          char *buf)
+{
+	int ret;
+	int16_t x_axis;
+    struct mpu9520_drv * pDrv;
+
+
+    pDrv = dev_get_drvdata(dev);
+    ret = read_axis(pDrv->client, &x_axis, REG_ACCEL_XOUT_H, REG_ACCEL_XOUT_L);
+    if (ret)
+		return ret;
+		
+	return sprintf(buf, "%d\n", x_axis);
+}
+static DEVICE_ATTR_RO(x_axis);
+
+
+static ssize_t y_axis_show(struct device * dev, struct device_attribute *attr,
+			                                                          char *buf)
+{
+	int ret;
+	int16_t y_axis;
+    struct mpu9520_drv * pDrv;
+
+
+    pDrv = dev_get_drvdata(dev);
+    ret = read_axis(pDrv->client, &y_axis, REG_ACCEL_YOUT_H, REG_ACCEL_YOUT_L);
+    if (ret)
+		return ret;
+		
+	return sprintf(buf, "%d\n", y_axis);
+}
+static DEVICE_ATTR_RO(y_axis);
+
+
+static ssize_t z_axis_show(struct device * dev, struct device_attribute *attr,
+			                                                          char *buf)
+{
+	int ret;
+	int16_t z_axis;
+    struct mpu9520_drv * pDrv;
+
+
+    pDrv = dev_get_drvdata(dev);
+    ret = read_axis(pDrv->client, &z_axis, REG_ACCEL_ZOUT_H, REG_ACCEL_ZOUT_L);
+    if (ret)
+		return ret;
+		
+	return sprintf(buf, "%d\n", z_axis);
+}
+static DEVICE_ATTR_RO(z_axis);
+
+
+/*******************************************************************************
  * driver / device registration
  ******************************************************************************/
 static int mpu9520_probe(struct i2c_client * client)
 {
-	struct mpu9520_drv *pDrv;
+	struct mpu9520_drv * pDrv;
 	int ret;
 
     /* create driver */
@@ -221,50 +262,65 @@ static int mpu9520_probe(struct i2c_client * client)
 
 
 	/* initialise physical device */
-	ret = init_mpu9250(client);
+	ret = init_mpu9520(client);
 	if (ret) {
-		pr_err("MPU9250 - failed to initialise device\n");
+		pr_err("MPU9520 - failed to initialise device\n");
 		return ret;
 	}
 
 
 	/* create the class */
-	mpu9520_frame.class = class_create(THIS_MODULE, "MPU9250");
+	mpu9520_frame.class = class_create(THIS_MODULE, "MPU9520");
 	if (IS_ERR(mpu9520_frame.class))
 		return PTR_ERR(mpu9520_frame.class);
 
 
 	/* register device number (major/minor - dynamic) */
-	ret = register_chrdev(0, "MPU9250", &mpu9520_fops);
+	ret = register_chrdev(0, "MPU9520", &mpu9520_fops);
 	if (ret < 0)
 		return ret;
 
 	mpu9520_frame.major = ret;
-	pr_info("MPU9250 - class created with major number %d.\n", mpu9520_frame.major);
+	pr_info("MPU9520 - class created with major number %d.\n", mpu9520_frame.major);
 
 
 	/* Create a single device file for userspace to interact with. */
 	pDrv->minor = 0;
 	pDrv->dev = device_create(mpu9520_frame.class, NULL,
 				              MKDEV(mpu9520_frame.major, pDrv->minor),
-				              pDrv, "MPU9250_%d", pDrv->minor);
+				              pDrv, "MPU9520_%d", pDrv->minor);
 
     mpu9520_frame.drvdata[pDrv->minor] = pDrv;
     
-    pr_info("MPU9250 - probe success\n");
+    /* Create a sysfs files on the client device node */
+	ret = device_create_file(pDrv->dev, &dev_attr_x_axis);
+	if (ret)
+		return ret;
+		
+	ret = device_create_file(pDrv->dev, &dev_attr_y_axis);
+	if (ret)
+		return ret;
+		
+	ret = device_create_file(pDrv->dev, &dev_attr_z_axis);
+	if (ret)
+		return ret;
+
+
+    pr_info("MPU9520 - probe success\n");
 	return 0;
 }
 
 
 static int mpu9520_remove(struct i2c_client *client)
 {
-	struct mpu9520_drv *pDrv = i2c_get_clientdata(client);
+	struct mpu9520_drv * pDrv = i2c_get_clientdata(client);
 
 	device_del(pDrv->dev);
 	kfree(pDrv);
-	unregister_chrdev(mpu9520_frame.major, "MPU9250");
+	unregister_chrdev(mpu9520_frame.major, "MPU9520");
 	class_destroy(mpu9520_frame.class);
 
+    pr_info("MPU9520 - remove success\n");
 	return 0;
 }
 
