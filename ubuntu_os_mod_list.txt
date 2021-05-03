@@ -34,6 +34,7 @@ NFS:
 update:         sudo apt-get update
 install make:   sudo apt-get install build-essential
 install nano:   sudo apt-get install nano
+install dtc:    sudo apt-get install device-tree-compiler
 
 install kernel headers:     sudo apt-get install kernel-headers-5.4.109-bone48
 
@@ -43,10 +44,6 @@ ssh permit root login:  nano /etc/ssh/sshd_config
                         --->    PermitRootLogin yes
                         systemctl restart sshd
                         
-install dtc:    sudo apt-get update
-                sudo apt-get install device-tree-compiler
-
-
 
 // NFS ------------------------------------------------------
 

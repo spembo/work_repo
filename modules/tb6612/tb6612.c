@@ -10,15 +10,28 @@
 #include <linux/gpio/consumer.h>
 
 
-/* STBY = 1-> turn on
- * 
- *  IN  1   2
- * ------------
- *      0   0  STOP
- *      0   1  CCW
- *      1   0  CW
- *      1   1  BRAKE
- */
+/****************************************************************************** 
+ * tb6612 IO:
+ * ----------------------------------------------------------------------------
+ * STBY 		0 = disable, 1 = enable			DIR_xA		DIR_xB		OUT
+ * DIR_1A		stop / direction control		-------------------------------
+ * DIR_1B		"									0			0		STOP
+ * DIR_2A		"									0			1		CCW
+ * DIR_2B		"									1			0		CW
+ * PWM_1A		speed control						1			1		BRAKE
+ * PWM_1B		"
+ *
+ *
+ * **** DEVICE TREE PIN DETAILS ***********************************************
+ * FUNC			PIN		H-PIN	MODE	MODE_FUNC	PIN-NAME
+ * ----------------------------------------------------------------------------
+ * DIR_1A		U18		P9_12	7		GPIO1_28	AM335X_PIN_GPMC_BEN1
+ * DIR_1B		U17		P9_13	7		GPIO0_31	AM335X_PIN_GPMC_WPN
+ * DIR_2A		R13		P9_15	7		GPIO1_16	AM335X_PIN_GPMC_A0
+ * DIR_2B		U4		P8_34	7		GPIO2_17	AM335X_PIN_LCD_DATA11
+ * PWM_1A		U14		P9_14	6		EHRPWM1A	AM335X_PIN_GPMC_A2
+ * PWM_1B		T14		P9_16	6		EHRPWM1B	AM335X_PIN_GPMC_A3
+ ******************************************************************************/
 
 
 
@@ -26,136 +39,39 @@
 /*******************************************************************************
  * data
  ******************************************************************************/
-#define REG_ACCEL_CONFIG    0x1C
-#define REG_ACCEL_CONFIG2   0x1D
-
-#define REG_INT_PIN_CFG     0x37
-#define REG_INT_ENABLE      0x38
-
-#define REG_ACCEL_XOUT_H    0x3B
-#define REG_ACCEL_XOUT_L    0x3C
-#define REG_ACCEL_YOUT_H    0x3D
-#define REG_ACCEL_YOUT_L    0x3E
-#define REG_ACCEL_ZOUT_H    0x3F
-#define REG_ACCEL_ZOUT_L    0x40
-
-#define REG_PWR_MGMT_1      0x6B
-#define REG_WHO_AM_I        0x75
-
-#define MPU9250_WHO_ID      0x71
-
-
-
-static struct mpu9520_framework {
-	struct class *class;
-	unsigned int major;
-	void *drvdata[255];
-} mpu9520_frame;
-
-
-struct mpu9520_drv {
-	struct device * dev;
-	struct i2c_client * client;
-	unsigned int minor;
+struct tb6612_dev {
+	dev_t dev_num;
+	struct cdev cdev;
+	struct device_node * of_node;
+	int gpio_dir_1A, gpio_dir_1B, gpio_dir_2A, gpio_dir_2B;
 };
 
 
+struct tb6612_drv {
+	dev_t device_num_base;
+	struct class *tb_class;
+	struct device *tb_device;
+};
+
+struct tb6612_dev tb6612_device;
 
 
 /*******************************************************************************
  * device specific code
  ******************************************************************************/
-static int init_mpu9250(struct i2c_client *client)
-{   
-    int ret = 0;
-    uint8_t whoami;
 
-    whoami = i2c_smbus_read_byte_data(client, REG_WHO_AM_I);
-    if (whoami != MPU9250_WHO_ID)
-    {
-        pr_err("MPU9530 - whoami not recognised \n");
-        ret = -1;
-        return ret;
-    }
-    else
-    {
-        pr_info("MPU9530 - device recognised \n");
-    }
-
-
-    ret |= i2c_smbus_write_byte_data(client, REG_PWR_MGMT_1, 0x80); /* reset device */
-    msleep(100);
-    ret |= i2c_smbus_write_byte_data(client, REG_PWR_MGMT_1, 0x00); /* wake up */ 
-    msleep(100); // Delay 100 ms for PLL to get established 
-    ret |= i2c_smbus_write_byte_data(client, REG_PWR_MGMT_1, 0x01); /* clock source PLL */
-
-    /* Set accelerometer full-scale range */
-    ret |= i2c_smbus_write_byte_data(client, REG_ACCEL_CONFIG, 0x00); /* +-2G */
-
-    /* Set accelerometer sample rate configuration */
-    ret |= i2c_smbus_write_byte_data(client, REG_ACCEL_CONFIG2, 0x09); /* 218.1 Hz */
-
-    /* turn interrupts off */
-    ret |= i2c_smbus_write_byte_data(client, REG_INT_PIN_CFG, 0x00);    
-    ret |= i2c_smbus_write_byte_data(client, REG_INT_ENABLE, 0x00);
-
-    return ret;
-}
-
-
-static int read_axis_data(struct mpu9520_drv * pDrv, int16_t * data)
-{
-    uint8_t raw_data_lsb, raw_data_msb;
-    struct i2c_client * client = pDrv->client;
-    int ret;
-    
-    /* get x axis */
-    raw_data_msb = i2c_smbus_read_byte_data(client, REG_ACCEL_XOUT_H);
-	if (raw_data_msb < 0)
-		return ret;
-		
-    raw_data_lsb = i2c_smbus_read_byte_data(client, REG_ACCEL_XOUT_L);
-	if (raw_data_lsb < 0)
-		return ret;
-		
-    *(data + 0) = (int16_t)(((int16_t)raw_data_msb << 8) | raw_data_lsb);
-
-    /* get y axis */
-    raw_data_msb = i2c_smbus_read_byte_data(client, REG_ACCEL_YOUT_H);
-	if (raw_data_msb < 0)
-		return ret;
-		
-    raw_data_lsb = i2c_smbus_read_byte_data(client, REG_ACCEL_YOUT_L);
-	if (raw_data_lsb < 0)
-		return ret;
-		
-    *(data + 1) = (int16_t)(((int16_t)raw_data_msb << 8) | raw_data_lsb);
-
-    /* get z axis */
-    raw_data_msb = i2c_smbus_read_byte_data(client, REG_ACCEL_ZOUT_H);
-	if (raw_data_msb < 0)
-		return ret;
-		
-    raw_data_lsb = i2c_smbus_read_byte_data(client, REG_ACCEL_ZOUT_L);
-	if (raw_data_lsb < 0)
-		return ret;
-		
-    *(data + 2) = (int16_t)(((int16_t)raw_data_msb << 8) | raw_data_lsb);
-    
-    return 0;
-}
 
 
 
 /*******************************************************************************
  * file operations
  ******************************************************************************/
-static int mpu9520_open(struct inode *inode, struct file * file)
+static int tb6612_open(struct inode *inode, struct file * file)
 {
     /* Identify this device, and associate the device data with the file */
 	int minor = iminor(inode);
     pr_info("minor access = %d\n", minor);
-	file->private_data = mpu9520_frame.drvdata[minor];
+	file->private_data = tb6612_frame.drvdata[minor];
 
 	/* nonseekable_open removes seek, and pread()/pwrite() permissions */
 	/* ~~~ always returns 0 ~~~ */
@@ -163,44 +79,18 @@ static int mpu9520_open(struct inode *inode, struct file * file)
 }
 
 
-static int mpu9520_release(struct inode *inode, struct file * file)
+static int tb6612_release(struct inode *inode, struct file * file)
 {
 	pr_info("MPU9520 - release was successful\n");
 	return 0;
 }
 
 
-ssize_t mpu9520_read(struct file *file, char __user *buf, size_t count, loff_t *f_pos)
-{
-    int ret;
-    int16_t data[3];
-	char str[32];
-    struct mpu9520_drv *pDrv = file->private_data;
-
-    pr_info("MPU9520 - attempting read\n");
-    ret = read_axis_data(pDrv, data);
-	if (ret)
-		return ret;
-    
-    pr_info("MPU9520 - snprint\n");  
-	ret = snprintf(str, sizeof(str), "%d\n%d\n%d\n", data[0], 
-                                                     data[1], 
-                                                     data[2]);
-                                                     
-    pr_info("MPU9520 - copying to user\n");                                                     
-	if (copy_to_user(buf, str, ret))
-		ret = -EFAULT;
-
-	return ret;
-}
-
-
 /* file operations of the driver */
-struct file_operations mpu9520_fops=
+struct file_operations tb6612_fops=
 {
-	.open = mpu9520_open,
-	.release = mpu9520_release,
-	.read = mpu9520_read,
+	.open = tb6612_open,
+	.release = tb6612_release,
 	.llseek = no_llseek,
 	.owner = THIS_MODULE
 };
@@ -210,103 +100,76 @@ struct file_operations mpu9520_fops=
 /*******************************************************************************
  * driver / device registration
  ******************************************************************************/
-static int mpu9520_probe(struct i2c_client * client)
+static int tb6612_probe(struct platform_device *pdev)
 {
-	struct mpu9520_drv *pDrv;
-	int ret;
+	int ret = 0;
 
-    /* create driver */
-	if (!i2c_check_functionality(client->adapter, 
-                    (I2C_FUNC_SMBUS_READ_I2C_BLOCK | I2C_FUNC_SMBUS_BYTE_DATA))){
-		pr_err("MPU9520 -i2c_check_functionality error\n");
-		return -EIO;
+	printk(KERN_EMERG "TB6612 - probe() enter!\n");
+
+	/*1. Get device node*/
+	tb6612_device.of_node = of_find_node_by_name(NULL, "tb6612");
+	if(tb6612_device.of_node  == NULL) {
+		printk(KERN_EMERG "beep node not found!\n");
+		return -EINVAL;
 	}
 
-	pDrv = kmalloc(sizeof(*pDrv), GFP_KERNEL);
-	if (!pDrv)
-		return -ENOMEM;
-
-
-	/* Associate the i2c client and driver */
-	i2c_set_clientdata(client, pDrv);
-	pDrv->client = client;
-
-
-	/* initialise physical device */
-	ret = init_mpu9250(client);
-	if (ret) {
-		pr_err("MPU9250 - failed to initialise device\n");
-		return ret;
+	/*2. get gpio property*/
+	tb6612_device.gpio_dir_1A = of_get_named_gpio(tb6612_device.gpio_dir_1A, "beep-gpio", 0);
+	if(tb6612_device.beep_gpio < 0) {
+		printk(KERN_EMERG "can't get beep-gpio!\n");
+		return -EINVAL;     
 	}
 
-
-	/* create the class */
-	mpu9520_frame.class = class_create(THIS_MODULE, "MPU9250");
-	if (IS_ERR(mpu9520_frame.class))
-		return PTR_ERR(mpu9520_frame.class);
-
-
-	/* register device number (major/minor - dynamic) */
-	ret = register_chrdev(0, "MPU9250", &mpu9520_fops);
-	if (ret < 0)
-		return ret;
-
-	mpu9520_frame.major = ret;
-	pr_info("MPU9250 - class created with major number %d.\n", mpu9520_frame.major);
-
-
-	/* Create a single device file for userspace to interact with. */
-	pDrv->minor = 0;
-	pDrv->dev = device_create(mpu9520_frame.class, NULL,
-				              MKDEV(mpu9520_frame.major, pDrv->minor),
-				              pDrv, "MPU9250_%d", pDrv->minor);
-
-    mpu9520_frame.drvdata[pDrv->minor] = pDrv;
-    
-    pr_info("MPU9250 - probe success\n");
-	return 0;
-}
-
-
-static int mpu9520_remove(struct i2c_client *client)
-{
-	struct mpu9520_drv *pDrv = i2c_get_clientdata(client);
-
-	device_del(pDrv->dev);
-	kfree(pDrv);
-	unregister_chrdev(mpu9520_frame.major, "MPU9250");
-	class_destroy(mpu9520_frame.class);
+	/*3. set gpio output,output high default,close beep*/
+	ret = gpio_direction_output(tb6612_device.beep_gpio, 1);
+	if(ret < 0)
+		printk(KERN_EMERG "can't set beep-gpio!\n");
+	
+	ret = misc_register(&beep_miscdev);
+	if(ret < 0) {
+		printk(KERN_EMERG "misc device register failed!\n");
+		return -EINVAL;           
+	}
 
 	return 0;
 }
 
 
-static const struct i2c_device_id mpu9520_id[] = {
-	{ "mpu9520", 0 },
+static int tb6612_remove(struct i2c_client *client)
+{
+
+}
+
+
+static const struct i2c_device_id tb6612_id[] = {
+	{ "tb6612", 0 },
 	{ },
 };
-MODULE_DEVICE_TABLE(i2c, mpu9520_id);
+MODULE_DEVICE_TABLE(i2c, tb6612_id);
 
 
-static const struct of_device_id mpu9520_dt_match[] = {
-	{ .compatible = "st,mpu9520", },
+static const struct of_device_id tb6612_dt_match[] = {
+	{ .compatible = "tos,tb6612", },
 	{ }
 };
-MODULE_DEVICE_TABLE(of, mpu9520_dt_match);
+MODULE_DEVICE_TABLE(of, tb6612_dt_match);
 
 
-static struct i2c_driver mpu9520_driver = {
+static struct platform_driver tb6612_platform_drv = {
 	.driver = {
-		.name = "mpu9520",
-		.of_match_table = mpu9520_dt_match,
+		.name = "tb6612",
+		.of_match_table = tb6612_dt_match,
 	},
-	.probe_new = mpu9520_probe,
-	.remove = mpu9520_remove,
-	.id_table = mpu9520_id,
+	.probe_new = tb6612_probe,
+	.remove = tb6612_remove,
+	.id_table = tb6612_id,
 };
-module_i2c_driver(mpu9520_driver);
 
 
-MODULE_DESCRIPTION("mpu9520 driver");
+module_platform_driver(pcd_platform_driver);
+
+
+
+MODULE_DESCRIPTION("tb6612 driver");
 MODULE_AUTHOR("Sam Pemberton <sam@sam.co.uk>");
 MODULE_LICENSE("GPL");

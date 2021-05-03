@@ -4,9 +4,8 @@
  */
 
 
-
-//#include <dt-bindings/display/tda998x.h>
-//#include <dt-bindings/interrupt-controller/irq.h>
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/pinctrl/am33xx.h>
 
 &i2c2 {
 	mpu9520: mpu9520@68 {
@@ -17,3 +16,55 @@
 	};
 };
 
+&am33xx_pinmux {
+	tb6612 {
+		pinctrl-names = "default";
+		pinctrl-0 = <&tb6612_pinmux>;
+
+		compatible = "tos,tb6612";
+
+		dir_1A {
+			label = "tb6612:dir_1A";
+			gpios = <&gpio1 28 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "dir_1A";
+			default-state = "off";
+		};
+		
+		dir_1B {
+			label = "tb6612:dir_1B";
+			gpios = <&gpio0 31 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "dir_1B";
+			default-state = "off";
+		};
+		
+		dir_2A {
+			label = "tb6612:dir_2A";
+			gpios = <&gpio1 16 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "dir_2A";
+			default-state = "off";
+		};
+		
+		dir_2B {
+			label = "tb6612:dir_2B";
+			gpios = <&gpio2 17 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "dir_2B";
+			default-state = "off";
+		};
+	};
+};
+
+
+&am33xx_pinmux {
+	tb6612_pinmux: tb6612_pinmux {
+		pinctrl-single,pins = <
+			AM33XX_PADCONF(AM335X_PIN_GPMC_BEN1, PIN_OUTPUT_PULLDOWN, MUX_MODE7)
+			AM33XX_PADCONF(AM335X_PIN_GPMC_WPN, PIN_OUTPUT_PULLDOWN, MUX_MODE7)
+			AM33XX_PADCONF(AM335X_PIN_GPMC_A0, PIN_OUTPUT_PULLDOWN, MUX_MODE7)
+			AM33XX_PADCONF(AM335X_PIN_LCD_DATA11, PIN_OUTPUT_PULLDOWN, MUX_MODE7)
+			AM33XX_PADCONF(AM335X_PIN_GPMC_A2, PIN_OUTPUT_PULLDOWN, MUX_MODE6)
+			AM33XX_PADCONF(AM335X_PIN_GPMC_A3, PIN_OUTPUT_PULLDOWN, MUX_MODE6)
+		>;
+	};
+};
+
+ 
