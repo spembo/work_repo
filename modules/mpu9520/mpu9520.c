@@ -33,18 +33,13 @@
 #define MPU9520_WHO_ID      0x71
 
 
-
-static struct mpu9520_framework {
-	struct class *class;
-	unsigned int major;
-	void *drvdata[255];
-} mpu9520_frame;
-
-
 struct mpu9520_drv {
+	struct class *class;
 	struct i2c_client * client;
 	struct device * dev;
+	unsigned int major;
 	unsigned int minor;
+	void *drvdata[255];
 };
 
 
@@ -123,7 +118,7 @@ static int mpu9520_open(struct inode *inode, struct file * file)
     /* Identify this device, and associate the device data with the file */
 	int minor = iminor(inode);
     pr_info("minor access = %d\n", minor);
-	file->private_data = mpu9520_frame.drvdata[minor];
+	file->private_data = mpu9520_frame.drvdata[minor];  // <---------------------------------------------
 
 	/* nonseekable_open removes seek, and pread()/pwrite() permissions */
 	/* ~~~ always returns 0 ~~~ */
@@ -270,9 +265,9 @@ static int mpu9520_probe(struct i2c_client * client)
 
 
 	/* create the class */
-	mpu9520_frame.class = class_create(THIS_MODULE, "MPU9520");
-	if (IS_ERR(mpu9520_frame.class))
-		return PTR_ERR(mpu9520_frame.class);
+	pDrv->class = class_create(THIS_MODULE, "MPU9520");
+	if (IS_ERR(pDrv->class))
+		return PTR_ERR(pDrv->class);
 
 
 	/* register device number (major/minor - dynamic) */
@@ -280,14 +275,14 @@ static int mpu9520_probe(struct i2c_client * client)
 	if (ret < 0)
 		return ret;
 
-	mpu9520_frame.major = ret;
-	pr_info("MPU9520 - class created with major number %d.\n", mpu9520_frame.major);
+	pDrv->major = ret;
+	pr_info("MPU9520 - class created with major number %d.\n", pDrv->major);
 
 
 	/* Create a single device file for userspace to interact with. */
 	pDrv->minor = 0;
-	pDrv->dev = device_create(mpu9520_frame.class, NULL,
-				              MKDEV(mpu9520_frame.major, pDrv->minor),
+	pDrv->dev = device_create(pDrv->class, NULL,
+				              MKDEV(pDrv->major, pDrv->minor),
 				              pDrv, "MPU9520_%d", pDrv->minor);
 
     mpu9520_frame.drvdata[pDrv->minor] = pDrv;
@@ -317,8 +312,8 @@ static int mpu9520_remove(struct i2c_client *client)
 
 	device_del(pDrv->dev);
 	kfree(pDrv);
-	unregister_chrdev(mpu9520_frame.major, "MPU9520");
-	class_destroy(mpu9520_frame.class);
+	unregister_chrdev(pDrv->major, "MPU9520");
+	class_destroy(pDrv->class);
 
     pr_info("MPU9520 - remove success\n");
 	return 0;
