@@ -39,7 +39,6 @@ struct mpu9520_drv {
 	struct device * dev;
 	unsigned int major;
 	unsigned int minor;
-	void *drvdata[255];
 };
 
 
@@ -113,61 +112,10 @@ static int read_axis(struct i2c_client * client, int16_t * data, uint8_t reg_hi,
 /*******************************************************************************
  * file operations
  ******************************************************************************/
-static int mpu9520_open(struct inode *inode, struct file * file)
-{
-    /* Identify this device, and associate the device data with the file */
-	int minor = iminor(inode);
-    pr_info("minor access = %d\n", minor);
-	file->private_data = mpu9520_frame.drvdata[minor];  // <---------------------------------------------
-
-	/* nonseekable_open removes seek, and pread()/pwrite() permissions */
-	/* ~~~ always returns 0 ~~~ */
-	return nonseekable_open(inode, file);	
-}
-
-
-static int mpu9520_release(struct inode *inode, struct file * file)
-{
-	pr_info("MPU9520 - release was successful\n");
-	return 0;
-}
-
-
-ssize_t mpu9520_read(struct file *file, char __user *buf, size_t count, loff_t *f_pos)
-{
-    int ret;
-    int16_t data[3];
-	char str[32];
-    struct mpu9520_drv *pDrv = file->private_data;
-
-  
-    ret = read_axis(pDrv->client, &data[0], REG_ACCEL_XOUT_H, REG_ACCEL_XOUT_L);
-	if (ret)
-		return ret;
-		
-	ret = read_axis(pDrv->client, &data[1], REG_ACCEL_YOUT_H, REG_ACCEL_YOUT_L);
-	if (ret)
-		return ret;
-	
-	ret = read_axis(pDrv->client, &data[2], REG_ACCEL_ZOUT_H, REG_ACCEL_ZOUT_L);
-	if (ret)
-		return ret;
-    
-    
-	ret = snprintf(str, sizeof(str), "%d\n%d\n%d\n", data[0], data[1], data[2]);                                                                                       
-	if (copy_to_user(buf, str, ret))
-		ret = -EFAULT;
-
-	return ret;
-}
-
 
 /* file operations of the driver */
 struct file_operations mpu9520_fops=
 {
-	.open = mpu9520_open,
-	.release = mpu9520_release,
-	.read = mpu9520_read,
 	.llseek = no_llseek,
 	.owner = THIS_MODULE
 };
@@ -284,8 +232,6 @@ static int mpu9520_probe(struct i2c_client * client)
 	pDrv->dev = device_create(pDrv->class, NULL,
 				              MKDEV(pDrv->major, pDrv->minor),
 				              pDrv, "MPU9520_%d", pDrv->minor);
-
-    mpu9520_frame.drvdata[pDrv->minor] = pDrv;
     
     /* Create a sysfs files on the client device node */
 	ret = device_create_file(pDrv->dev, &dev_attr_x_axis);
@@ -300,7 +246,6 @@ static int mpu9520_probe(struct i2c_client * client)
 	if (ret)
 		return ret;
 
-
     pr_info("MPU9520 - probe success\n");
 	return 0;
 }
@@ -309,12 +254,11 @@ static int mpu9520_probe(struct i2c_client * client)
 static int mpu9520_remove(struct i2c_client *client)
 {
 	struct mpu9520_drv * pDrv = i2c_get_clientdata(client);
-
+	
 	device_del(pDrv->dev);
-	kfree(pDrv);
 	unregister_chrdev(pDrv->major, "MPU9520");
 	class_destroy(pDrv->class);
-
+	kfree(pDrv);
     pr_info("MPU9520 - remove success\n");
 	return 0;
 }
