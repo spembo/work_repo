@@ -1,12 +1,16 @@
-#include <linux/uaccess.h>
-#include <linux/slab.h>
 #include <linux/module.h>
-#include <linux/mod_devicetable.h>
-#include <linux/delay.h>
-#include <linux/i2c.h>
 #include <linux/fs.h>
-//#include <linux/interrupt.h>
-//#include <linux/wait.h>
+#include <linux/cdev.h>
+#include <linux/device.h>
+#include <linux/kdev_t.h>
+#include <linux/uaccess.h>
+#include <linux/platform_device.h>
+#include <linux/slab.h>
+#include <linux/mod_devicetable.h>
+#include <linux/of.h>
+#include <linux/of_device.h>
+#include <linux/of_gpio.h>
+
 #include <linux/gpio/consumer.h>
 
 
@@ -34,14 +38,13 @@
  ******************************************************************************/
 
 
-
+// TODO:    
 
 /*******************************************************************************
  * data
  ******************************************************************************/
 struct tb6612_dev {
 	dev_t dev_num;
-	struct cdev cdev;
 	struct device_node * of_node;
 	int gpio_dir_1A, gpio_dir_1B, gpio_dir_2A, gpio_dir_2B;
 };
@@ -49,11 +52,11 @@ struct tb6612_dev {
 
 struct tb6612_drv {
 	dev_t device_num_base;
-	struct class *tb_class;
-	struct device *tb_device;
+	struct class * tb_class;
+	struct device * tb_device;
+    struct tb6612_dev * tb6612_dev;
 };
 
-struct tb6612_dev tb6612_device;
 
 
 /*******************************************************************************
@@ -66,31 +69,8 @@ struct tb6612_dev tb6612_device;
 /*******************************************************************************
  * file operations
  ******************************************************************************/
-static int tb6612_open(struct inode *inode, struct file * file)
-{
-    /* Identify this device, and associate the device data with the file */
-	int minor = iminor(inode);
-    pr_info("minor access = %d\n", minor);
-	file->private_data = tb6612_frame.drvdata[minor];
-
-	/* nonseekable_open removes seek, and pread()/pwrite() permissions */
-	/* ~~~ always returns 0 ~~~ */
-	return nonseekable_open(inode, file);	
-}
-
-
-static int tb6612_release(struct inode *inode, struct file * file)
-{
-	pr_info("MPU9520 - release was successful\n");
-	return 0;
-}
-
-
-/* file operations of the driver */
 struct file_operations tb6612_fops=
 {
-	.open = tb6612_open,
-	.release = tb6612_release,
 	.llseek = no_llseek,
 	.owner = THIS_MODULE
 };
@@ -100,49 +80,59 @@ struct file_operations tb6612_fops=
 /*******************************************************************************
  * driver / device registration
  ******************************************************************************/
+struct tb6612_drv pDrv;
+struct tb6612_dev pDev;
+
 static int tb6612_probe(struct platform_device *pdev)
 {
-	int ret = 0;
+/*	int ret = 0;
+    struct tb6612_drv * pDrv;
+    struct tb6612_dev * pDev;
+*/
 
-	printk(KERN_EMERG "TB6612 - probe() enter!\n");
+    pr_info("TB6612 - probe() enter\n");
+
+/*	pDrv = kmalloc(sizeof(*pDrv), GFP_KERNEL);
+	if (!pDrv)
+		return -ENOMEM;
+
+	pDev = kmalloc(sizeof(*pDev), GFP_KERNEL);
+	if (!pDev)
+		return -ENOMEM;
+
+    pDev->tb6612_dev = pDev;
+*/
 
 	/*1. Get device node*/
-	tb6612_device.of_node = of_find_node_by_name(NULL, "tb6612");
-	if(tb6612_device.of_node  == NULL) {
-		printk(KERN_EMERG "beep node not found!\n");
+	pDev.of_node = of_find_node_by_name(NULL, "tb6612");
+	if(pDev.of_node  == NULL) {
+		pr_err("TB6612 - node not found!\n");
 		return -EINVAL;
 	}
 
 	/*2. get gpio property*/
-	tb6612_device.gpio_dir_1A = of_get_named_gpio(tb6612_device.gpio_dir_1A, "beep-gpio", 0);
-	if(tb6612_device.beep_gpio < 0) {
-		printk(KERN_EMERG "can't get beep-gpio!\n");
+	pDev.gpio_dir_1A = of_get_named_gpio(pDev.of_node, "tb6612:dir_1A", 0);
+	if(pDev.gpio_dir_1A < 0) {
+		pr_err("TB6612 - can't get named gpio: tb6612:dir_1A!\n");
 		return -EINVAL;     
 	}
-
-	/*3. set gpio output,output high default,close beep*/
-	ret = gpio_direction_output(tb6612_device.beep_gpio, 1);
-	if(ret < 0)
-		printk(KERN_EMERG "can't set beep-gpio!\n");
 	
-	ret = misc_register(&beep_miscdev);
-	if(ret < 0) {
-		printk(KERN_EMERG "misc device register failed!\n");
-		return -EINVAL;           
-	}
-
+    pr_info("TB6612 - probe() return\n");
 	return 0;
 }
 
 
-static int tb6612_remove(struct i2c_client *client)
+static int tb6612_remove(struct platform_device *pdev)
 {
-
+/*    kfree(pDev);
+    kfree(pDrv);
+*/
+    return 0;
 }
 
 
-static const struct i2c_device_id tb6612_id[] = {
-	{ "tb6612", 0 },
+static const struct platform_device_id tb6612_id[] = {
+	{ .name = "tb6612", .driver_data = 0 },
 	{ },
 };
 MODULE_DEVICE_TABLE(i2c, tb6612_id);
@@ -160,13 +150,13 @@ static struct platform_driver tb6612_platform_drv = {
 		.name = "tb6612",
 		.of_match_table = tb6612_dt_match,
 	},
-	.probe_new = tb6612_probe,
+	.probe = tb6612_probe,
 	.remove = tb6612_remove,
 	.id_table = tb6612_id,
 };
 
 
-module_platform_driver(pcd_platform_driver);
+module_platform_driver(tb6612_platform_drv);
 
 
 

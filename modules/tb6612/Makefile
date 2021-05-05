@@ -1,7 +1,7 @@
 # name of object file
 obj-m := tb6612.o 
 
-KDIR := /home/sam/bbb_ubuntu/bb-kernel/KERNEL
+KDIR := /home/${USER}/bbb_ubuntu/bb-kernel/KERNEL
 PWD := $(shell pwd)
 ARCH := arm
 CROSS_COMPILE := arm-linux-gnueabihf-
