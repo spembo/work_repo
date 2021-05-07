@@ -14,13 +14,6 @@
 		#address-cells = <1>;
 		#size-cells = <1>;
 	};
-	
-	mpu9520: mpu9520@69 {
-		compatible = "inv,mpu9520";
-		reg = <0x69>;
-		#address-cells = <1>;
-		#size-cells = <1>;
-	};
 };
 
 
