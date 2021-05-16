@@ -1,0 +1,3 @@
+line 199 removed:
+	patches/soc/ti/beagleboard_dtbs/0001-Add-BeagleBoard.org-DTBS-v5.4.x.patch:199:+			AM33XX_PADCONF(AM335X_PIN_LCD_DATA11, PIN_OUTPUT, MUX_MODE0)
+

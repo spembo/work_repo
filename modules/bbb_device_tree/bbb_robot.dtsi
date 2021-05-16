@@ -17,55 +17,36 @@
 };
 
 
-&am33xx_pinmux {
+/ {
 	tb6612 {
 		pinctrl-names = "default";
 		pinctrl-0 = <&tb6612_pinmux>;
 
 		compatible = "tos,tb6612";
 
-		dir_1A {
-			label = "tb6612:dir_1A";
-			gpios = <&gpio1 28 GPIO_ACTIVE_HIGH>;
-			linux,default-trigger = "dir_1A";
-			default-state = "off";
-		};
-		
-		dir_1B {
-			label = "tb6612:dir_1B";
-			gpios = <&gpio0 31 GPIO_ACTIVE_HIGH>;
-			linux,default-trigger = "dir_1B";
-			default-state = "off";
-		};
-		
-		dir_2A {
-			label = "tb6612:dir_2A";
-			gpios = <&gpio1 16 GPIO_ACTIVE_HIGH>;
-			linux,default-trigger = "dir_2A";
-			default-state = "off";
-		};
-		
-		dir_2B {
-			label = "tb6612:dir_2B";
-			gpios = <&gpio2 17 GPIO_ACTIVE_HIGH>;
-			linux,default-trigger = "dir_2B";
-			default-state = "off";
-		};
+		tb6612-gpios = 	<&gpio0 20 GPIO_ACTIVE_HIGH>, /* stby   */
+						<&gpio1 28 GPIO_ACTIVE_HIGH>, /* dir_1A */
+						<&gpio0 31 GPIO_ACTIVE_HIGH>, /* dir_1B */
+						<&gpio1 16 GPIO_ACTIVE_HIGH>, /* dir_2A */
+						<&gpio2 17 GPIO_ACTIVE_HIGH>; /* dir_2B */
 	};
 };
 
 
+/* AM335X_PIN_LCD_DATA11 set in am335x-boneblack-common.dtsi       */
+/* This has been commented out to remove conflict and declare here */
 &am33xx_pinmux {
 	tb6612_pinmux: tb6612_pinmux {
 		pinctrl-single,pins = <
-			AM33XX_PADCONF(AM335X_PIN_GPMC_BEN1, PIN_OUTPUT_PULLDOWN, MUX_MODE7)
-			AM33XX_PADCONF(AM335X_PIN_GPMC_WPN, PIN_OUTPUT_PULLDOWN, MUX_MODE7)
-			AM33XX_PADCONF(AM335X_PIN_GPMC_A0, PIN_OUTPUT_PULLDOWN, MUX_MODE7)
-			AM33XX_PADCONF(AM335X_PIN_LCD_DATA11, PIN_OUTPUT_PULLDOWN, MUX_MODE7)
-			AM33XX_PADCONF(AM335X_PIN_GPMC_A2, PIN_OUTPUT_PULLDOWN, MUX_MODE6)
-			AM33XX_PADCONF(AM335X_PIN_GPMC_A3, PIN_OUTPUT_PULLDOWN, MUX_MODE6)
+			AM33XX_PADCONF(AM335X_PIN_XDMA_EVENT_INTR1, PIN_OUTPUT_PULLDOWN, MUX_MODE7)	// $PINS 60
+			AM33XX_PADCONF(AM335X_PIN_GPMC_BEN1, PIN_OUTPUT_PULLDOWN, MUX_MODE7)		// $PINS 
+			AM33XX_PADCONF(AM335X_PIN_GPMC_WPN, PIN_OUTPUT_PULLDOWN, MUX_MODE7)			// $PINS 
+			AM33XX_PADCONF(AM335X_PIN_GPMC_A0, PIN_OUTPUT_PULLDOWN, MUX_MODE7)			// $PINS 
+			AM33XX_PADCONF(AM335X_PIN_LCD_DATA11, PIN_OUTPUT_PULLDOWN, MUX_MODE7)		// $PINS 51
+			AM33XX_PADCONF(AM335X_PIN_GPMC_A2, PIN_OUTPUT_PULLDOWN, MUX_MODE6)			// $PINS 
+			AM33XX_PADCONF(AM335X_PIN_GPMC_A3, PIN_OUTPUT_PULLDOWN, MUX_MODE6)			// $PINS 
 		>;
 	};
 };
 
- 
+
