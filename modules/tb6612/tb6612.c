@@ -56,21 +56,25 @@
 /*******************************************************************************
  * data
  ******************************************************************************/
+enum gpio_pins {
+	PIN_STBY = 0,
+	PIN_DIR_1A,
+	PIN_DIR_1B,
+	PIN_DIR_2A,
+	PIN_DIR_2B,
+	PIN_MAX,
+};
+
 struct tb6612_dev {
-	//struct device_node * of_node;
-	struct gpio_desc * gpio_stby;
-	struct gpio_desc * gpio_dir_1A;
-	struct gpio_desc * gpio_dir_1B;
-	struct gpio_desc * gpio_dir_2A;
-	struct gpio_desc * gpio_dir_2B;
+	struct gpio_desc * gpio[PIN_MAX];
 	int minor;
 };
 
 
 struct tb6612_drv {
-	struct class * tb_class;
+	struct class * class;
 	struct device * dev;
-    struct tb6612_dev * tb6612_dev_data;
+    struct tb6612_dev * dev_data;
     int major;
 };
 
@@ -81,48 +85,23 @@ struct tb6612_drv {
  ******************************************************************************/
 int tb6612_get_dt_gpio(struct device * dev, struct tb6612_dev * p_dev)
 {
-	int ret = 0;
-	
-	/* setup standby pin */
-	p_dev->gpio_stby = gpiod_get_index(dev, "tb6612", 0, GPIOD_OUT_HIGH);
-	if(p_dev->gpio_stby == NULL) {
-		pr_err("TB6612 - can't get gpio: stby\n");
-		return -EINVAL;     
-	}
-	
-	ret = gpiod_direction_output(p_dev->gpio_stby, 0); /* set to output 0 */
-	if(ret != 0){
-		pr_err("TB6612 - can't set gpio direction: stby\n");
-		return ret;
-	}
-	
-	
-	
-	
-	p_dev->gpio_dir_1A = gpiod_get_index(dev, "tb6612", 1, GPIOD_OUT_HIGH);
-	if(p_dev->gpio_dir_1A == NULL) {
-		pr_err("TB6612 - can't get gpio: gpio_dir_1A\n");
-		return -EINVAL;     
-	}
-	
-	p_dev->gpio_dir_1B = gpiod_get_index(dev, "tb6612", 2, GPIOD_OUT_HIGH);
-	if(p_dev->gpio_dir_1B == NULL) {
-		pr_err("TB6612 - can't get gpio: gpio_dir_1B\n");
-		return -EINVAL;     
-	}
-	
-	p_dev->gpio_dir_2A = gpiod_get_index(dev, "tb6612", 3, GPIOD_OUT_HIGH);
-	if(p_dev->gpio_dir_2A == NULL) {
-		pr_err("TB6612 - can't get gpio: gpio_dir_2A\n");
-		return -EINVAL;     
-	}
-	
-	p_dev->gpio_dir_2B = gpiod_get_index(dev, "tb6612", 4, GPIOD_OUT_HIGH);
-	if(p_dev->gpio_dir_2B == NULL) {
-		pr_err("TB6612 - can't get gpio: gpio_dir_2B\n");
-		return -EINVAL;     
-	}
-	
+	int i;
+	int ret = 0;	
+
+	for(i = 0; i < PIN_MAX; i++) {
+		p_dev->gpio[i] = gpiod_get_index(dev, "tb6612", i, GPIOD_OUT_HIGH);
+		if(p_dev->gpio[i] == NULL) {
+			pr_err("TB6612 - can't get gpio index: %d \n", i);
+			return -EINVAL;
+		}
+
+		ret = gpiod_direction_output(p_dev->gpio[i], 0); /* set to output 0 */
+		if(ret != 0){
+			pr_err("TB6612 - can't set gpio direction index: %d \n", i);
+			return ret;
+		}
+	}		
+
 	return ret;
 }
 
@@ -141,7 +120,7 @@ struct file_operations tb6612_fops=
 /*******************************************************************************
  * sysfs interface
  ******************************************************************************/
-static ssize_t drive_enable_store(struct device * dev,
+static ssize_t enable_store(struct device * dev,
         	     struct device_attribute * attr, const char * buf, size_t count)
 {
     struct tb6612_drv * p_drv = dev_get_drvdata(dev);
@@ -149,18 +128,77 @@ static ssize_t drive_enable_store(struct device * dev,
     
     sscanf(buf, "%d", &enbl);
     
-    if(enbl == 0)
-	    gpiod_set_value(p_drv->tb6612_dev_data->gpio_stby, 0);
-	else if(enbl == 1)
-		gpiod_set_value(p_drv->tb6612_dev_data->gpio_stby, 1);
-	else
-		pr_err("TB6612 - enable: invalid parameter \n");
-		
+    switch(enbl) {
+    	case 0:
+	    	gpiod_set_value(p_drv->dev_data->gpio[PIN_STBY], 0);
+    		break;
+    
+    	case 1:
+			gpiod_set_value(p_drv->dev_data->gpio[PIN_STBY], 1);
+    		break;
+    		
+    	default:
+    		pr_err("TB6612 - enable: invalid parameter \n");
+    }
+	
 	return count;
 }
-static DEVICE_ATTR_WO(drive_enable);
+static DEVICE_ATTR_WO(enable);
 
- 
+
+static ssize_t direction_store(struct device * dev,
+        	     struct device_attribute * attr, const char * buf, size_t count)
+{
+    struct tb6612_drv * p_drv = dev_get_drvdata(dev);
+	int dir = 0;
+	
+	sscanf(buf, "%d", &dir);
+	
+    switch(dir) {
+    	case 0:	/* stop */
+	    	gpiod_set_value(p_drv->dev_data->gpio[PIN_DIR_1A], 0);
+	    	gpiod_set_value(p_drv->dev_data->gpio[PIN_DIR_1B], 0);
+	    	gpiod_set_value(p_drv->dev_data->gpio[PIN_DIR_2A], 0);
+	    	gpiod_set_value(p_drv->dev_data->gpio[PIN_DIR_2B], 0);
+    		break;
+    
+    	case 1:	/* CCW */
+			gpiod_set_value(p_drv->dev_data->gpio[PIN_DIR_1A], 0);
+	    	gpiod_set_value(p_drv->dev_data->gpio[PIN_DIR_1B], 1);
+	    	gpiod_set_value(p_drv->dev_data->gpio[PIN_DIR_2A], 0);
+	    	gpiod_set_value(p_drv->dev_data->gpio[PIN_DIR_2B], 1);
+    		break;
+    		
+    	case 2:	/* CW */
+			gpiod_set_value(p_drv->dev_data->gpio[PIN_DIR_1A], 1);
+	    	gpiod_set_value(p_drv->dev_data->gpio[PIN_DIR_1B], 0);
+	    	gpiod_set_value(p_drv->dev_data->gpio[PIN_DIR_2A], 1);
+	    	gpiod_set_value(p_drv->dev_data->gpio[PIN_DIR_2B], 0);
+    		break;
+    		
+    	case 3:	/* brake */
+			gpiod_set_value(p_drv->dev_data->gpio[PIN_DIR_1A], 1);
+	    	gpiod_set_value(p_drv->dev_data->gpio[PIN_DIR_1B], 1);
+	    	gpiod_set_value(p_drv->dev_data->gpio[PIN_DIR_2A], 1);
+	    	gpiod_set_value(p_drv->dev_data->gpio[PIN_DIR_2B], 1);
+    		break;
+    		
+    	default:
+    		pr_err("TB6612 - direction: invalid parameter \n");
+    }
+	
+	return count;
+}
+static DEVICE_ATTR_WO(direction);
+
+
+static ssize_t speed_store(struct device * dev,
+        	     struct device_attribute * attr, const char * buf, size_t count)
+{
+	
+	return count;
+}
+static DEVICE_ATTR_WO(speed);
 
 
 /*******************************************************************************
@@ -182,18 +220,25 @@ static int tb6612_probe(struct platform_device *pdev)
 	if (!p_dev)
 		return -ENOMEM;
 
-    p_drv->tb6612_dev_data = p_dev;
+    p_drv->dev_data = p_dev;
     p_drv->dev = &pdev->dev;
 	dev_set_drvdata(&pdev->dev, p_drv);
-	
 
+
+	/* get io from device tree */
+	ret = tb6612_get_dt_gpio(p_drv->dev, p_dev);
+	if(ret < 0)
+		return ret;
+	
+	
 	/* create the class */
-	p_drv->tb_class = class_create(THIS_MODULE, "TB6612");
-	if (IS_ERR(p_drv->tb_class))
+	p_drv->class = class_create(THIS_MODULE, "TB6612");
+	if (IS_ERR(p_drv->class))
 	{
 		pr_err("TB6612 - could not create class \n");
-		return PTR_ERR(p_drv->tb_class);
+		return PTR_ERR(p_drv->class);
 	}
+
 
 	/* register device number (major/minor - dynamic) */
 	ret = register_chrdev(0, "TB6612", &tb6612_fops);
@@ -207,25 +252,27 @@ static int tb6612_probe(struct platform_device *pdev)
 	pr_info("TB6612 - class created with major number %d.\n", p_drv->major);
 
 
-	/* Create a sysfs device file for userspace to interact with. */
-	p_drv->tb6612_dev_data->minor = 0;
-	p_drv->dev = device_create(p_drv->tb_class, NULL,
-				              MKDEV(p_drv->major, p_drv->tb6612_dev_data->minor),
-				              p_drv, "TB6612%d", p_drv->tb6612_dev_data->minor);
+	/* Create a sysfs device file for userspace to interact with */
+	p_drv->dev_data->minor = 0;
+	p_drv->dev = device_create(p_drv->class, NULL,
+				              MKDEV(p_drv->major, p_drv->dev_data->minor),
+				              p_drv, "TB6612%d", p_drv->dev_data->minor);
 				           
 	/* Create sysfs files on the device node */
-	ret = device_create_file(p_drv->dev, &dev_attr_drive_enable);
+	ret = device_create_file(p_drv->dev, &dev_attr_enable);
+	if (ret)
+		return ret;
+		
+	ret = device_create_file(p_drv->dev, &dev_attr_direction);
+	if (ret)
+		return ret;
+		
+	ret = device_create_file(p_drv->dev, &dev_attr_speed);
 	if (ret)
 		return ret;
 
-
-	/* get io from device tree */
-	ret = tb6612_get_dt_gpio(p_drv->dev, p_dev);
-	if(ret < 0)
-		return ret;
-
 	
-    pr_info("TB6612 - probe() complete \n");
+    pr_info("TB6612 - probe() success\n");
 	return 0;
 }
 
@@ -236,9 +283,9 @@ static int tb6612_remove(struct platform_device *pdev)
 
 	device_del(p_drv->dev);
 	unregister_chrdev(p_drv->major, "TB6612");
-	class_destroy(p_drv->tb_class);
+	class_destroy(p_drv->class);
     kfree(p_drv);
-    kfree(p_drv->tb6612_dev_data);
+    kfree(p_drv->dev_data);
 
 	pr_info("TB6612 - remove() complete\n");
     return 0;

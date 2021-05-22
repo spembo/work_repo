@@ -34,7 +34,7 @@
 
 
 struct mpu9520_drv {
-	struct class *class;
+	struct class * class;
 	struct i2c_client * client;
 	struct device * dev;
 	unsigned int major;
@@ -130,11 +130,11 @@ static ssize_t x_axis_show(struct device * dev, struct device_attribute *attr,
 {
 	int ret;
 	int16_t x_axis;
-    struct mpu9520_drv * pDrv;
+    struct mpu9520_drv * p_drv;
 
 
-    pDrv = dev_get_drvdata(dev);
-    ret = read_axis(pDrv->client, &x_axis, REG_ACCEL_XOUT_H, REG_ACCEL_XOUT_L);
+    p_drv = dev_get_drvdata(dev);
+    ret = read_axis(p_drv->client, &x_axis, REG_ACCEL_XOUT_H, REG_ACCEL_XOUT_L);
     if (ret)
 		return ret;
 		
@@ -148,11 +148,11 @@ static ssize_t y_axis_show(struct device * dev, struct device_attribute *attr,
 {
 	int ret;
 	int16_t y_axis;
-    struct mpu9520_drv * pDrv;
+    struct mpu9520_drv * p_drv;
 
 
-    pDrv = dev_get_drvdata(dev);
-    ret = read_axis(pDrv->client, &y_axis, REG_ACCEL_YOUT_H, REG_ACCEL_YOUT_L);
+    p_drv = dev_get_drvdata(dev);
+    ret = read_axis(p_drv->client, &y_axis, REG_ACCEL_YOUT_H, REG_ACCEL_YOUT_L);
     if (ret)
 		return ret;
 		
@@ -166,11 +166,11 @@ static ssize_t z_axis_show(struct device * dev, struct device_attribute *attr,
 {
 	int ret;
 	int16_t z_axis;
-    struct mpu9520_drv * pDrv;
+    struct mpu9520_drv * p_drv;
 
 
-    pDrv = dev_get_drvdata(dev);
-    ret = read_axis(pDrv->client, &z_axis, REG_ACCEL_ZOUT_H, REG_ACCEL_ZOUT_L);
+    p_drv = dev_get_drvdata(dev);
+    ret = read_axis(p_drv->client, &z_axis, REG_ACCEL_ZOUT_H, REG_ACCEL_ZOUT_L);
     if (ret)
 		return ret;
 		
@@ -184,7 +184,7 @@ static DEVICE_ATTR_RO(z_axis);
  ******************************************************************************/
 static int mpu9520_probe(struct i2c_client * client)
 {
-	struct mpu9520_drv * pDrv;
+	struct mpu9520_drv * p_drv;
 	int ret;
 
     /* create driver */
@@ -194,14 +194,14 @@ static int mpu9520_probe(struct i2c_client * client)
 		return -EIO;
 	}
 
-	pDrv = kmalloc(sizeof(*pDrv), GFP_KERNEL);
-	if (!pDrv)
+	p_drv = kmalloc(sizeof(*p_drv), GFP_KERNEL);
+	if (!p_drv)
 		return -ENOMEM;
 
 
 	/* Associate the i2c client and driver */
-	i2c_set_clientdata(client, pDrv);
-	pDrv->client = client;
+	i2c_set_clientdata(client, p_drv);
+	p_drv->client = client;
 
 
 	/* initialise physical device */
@@ -213,53 +213,55 @@ static int mpu9520_probe(struct i2c_client * client)
 
 
 	/* create the class */
-	pDrv->class = class_create(THIS_MODULE, "MPU9520");
-	if (IS_ERR(pDrv->class))
-		return PTR_ERR(pDrv->class);
-
+	p_drv->class = class_create(THIS_MODULE, "MPU9520");
+	if (IS_ERR(p_drv->class)){
+		pr_err("MPU9520 - could not create class \n");
+		return PTR_ERR(p_drv->class);
+	}
+	
 
 	/* register device number (major/minor - dynamic) */
 	ret = register_chrdev(0, "MPU9520", &mpu9520_fops);
 	if (ret < 0)
 		return ret;
 
-	pDrv->major = ret;
-	pr_info("MPU9520 - class created with major number %d.\n", pDrv->major);
+	p_drv->major = ret;
+	pr_info("MPU9520 - class created with major number %d.\n", p_drv->major);
 
 
-	/* Create a single device file for userspace to interact with. */
-	pDrv->minor = 0;
-	pDrv->dev = device_create(pDrv->class, NULL,
-				              MKDEV(pDrv->major, pDrv->minor),
-				              pDrv, "MPU9520_%d", pDrv->minor);
+	/* Create a sysfs device file for userspace to interact with */
+	p_drv->minor = 0;
+	p_drv->dev = device_create(p_drv->class, NULL,
+				              MKDEV(p_drv->major, p_drv->minor),
+				              p_drv, "MPU9520_%d", p_drv->minor);
     
     /* Create a sysfs files on the client device node */
-	ret = device_create_file(pDrv->dev, &dev_attr_x_axis);
+	ret = device_create_file(p_drv->dev, &dev_attr_x_axis);
 	if (ret)
 		return ret;
 		
-	ret = device_create_file(pDrv->dev, &dev_attr_y_axis);
+	ret = device_create_file(p_drv->dev, &dev_attr_y_axis);
 	if (ret)
 		return ret;
 		
-	ret = device_create_file(pDrv->dev, &dev_attr_z_axis);
+	ret = device_create_file(p_drv->dev, &dev_attr_z_axis);
 	if (ret)
 		return ret;
 
-    pr_info("MPU9520 - probe success\n");
+    pr_info("MPU9520 - probe() success\n");
 	return 0;
 }
 
 
 static int mpu9520_remove(struct i2c_client *client)
 {
-	struct mpu9520_drv * pDrv = i2c_get_clientdata(client);
+	struct mpu9520_drv * p_drv = i2c_get_clientdata(client);
 	
-	device_del(pDrv->dev);
-	unregister_chrdev(pDrv->major, "MPU9520");
-	class_destroy(pDrv->class);
-	kfree(pDrv);
-    pr_info("MPU9520 - remove success\n");
+	device_del(p_drv->dev);
+	unregister_chrdev(p_drv->major, "MPU9520");
+	class_destroy(p_drv->class);
+	kfree(p_drv);
+    pr_info("MPU9520 - remove() complete\n");
 	return 0;
 }
 
