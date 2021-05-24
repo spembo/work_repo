@@ -12,6 +12,7 @@
 #include <linux/of_gpio.h>
 
 #include <linux/gpio/consumer.h>
+#include <linux/pwm.h>
 
 
 /****************************************************************************** 

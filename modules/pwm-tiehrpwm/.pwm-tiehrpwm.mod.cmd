@@ -1,0 +1,1 @@
+cmd_/home/sam/bbb_ubuntu/work_repo/modules/pwm-tiehrpwm/pwm-tiehrpwm.mod := { echo  /home/sam/bbb_ubuntu/work_repo/modules/pwm-tiehrpwm/pwm-tiehrpwm.o;  echo; } > /home/sam/bbb_ubuntu/work_repo/modules/pwm-tiehrpwm/pwm-tiehrpwm.mod
