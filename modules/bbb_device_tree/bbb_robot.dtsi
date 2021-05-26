@@ -29,6 +29,9 @@
 						<&gpio0 31 GPIO_ACTIVE_HIGH>, /* dir_1B */
 						<&gpio1 16 GPIO_ACTIVE_HIGH>, /* dir_2A */
 						<&gpio2 17 GPIO_ACTIVE_HIGH>; /* dir_2B */
+
+		tb6612-pwms =   <&epwmss0 0 500000>,	/* 500000ns = 2kz */
+						<&epwmss0 1 500000>;
 	};
 };
 

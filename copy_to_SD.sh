@@ -5,7 +5,7 @@
 # ROOT_FS:  RFS, uEnv.txt, zImage, dtb, modules, file system table
 
 
-KERNEL_VERSION=5.4.109-bone48
+KERNEL_VERSION=5.4.115-bone49
 BBB_U_DIR=../
 
 DISK=/dev/sdb
