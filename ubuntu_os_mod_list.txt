@@ -39,7 +39,7 @@ install dtc:    sudo apt-get install device-tree-compiler
 install kernel headers:     //sudo apt-get install kernel-headers-5.4.109-bone48
 							sudo apt-get install kernel-headers-5.4.115-bone49
 
-change root password:       su; sudo passwd
+change root password:       sudo passwd root
 
 ssh permit root login:  nano /etc/ssh/sshd_config
                         --->    PermitRootLogin yes

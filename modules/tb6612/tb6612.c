@@ -297,7 +297,7 @@ static const struct platform_device_id tb6612_id[] = {
 	{ .name = "tb6612", .driver_data = 0 },
 	{ },
 };
-MODULE_DEVICE_TABLE(i2c, tb6612_id);
+MODULE_DEVICE_TABLE(platform, tb6612_id);
 
 
 static const struct of_device_id tb6612_dt_match[] = {
