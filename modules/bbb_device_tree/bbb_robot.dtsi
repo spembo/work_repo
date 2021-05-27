@@ -29,11 +29,20 @@
 						<&gpio0 31 GPIO_ACTIVE_HIGH>, /* dir_1B */
 						<&gpio1 16 GPIO_ACTIVE_HIGH>, /* dir_2A */
 						<&gpio2 17 GPIO_ACTIVE_HIGH>; /* dir_2B */
+		
+		tb6612-pwms =   <&ehrpwm0 0 500000>;
+		/*pwm_pinA: pwm_pinA {
+        	pwms = <&ehrpwm0 0 500000>;
+        };
+
+        pwm_pinB: pwm_pinB {
+        	pwms = <&ehrpwm0 1 500000>;
+        };*/
+
+		//tb6612-pwms =   <&ehrpwm0 0 500000>,	/* 500us = 2kHz */
+		//				<&ehrpwm0 1 500000>;
 						
-		tb6612-pwms =   <&ehrpwm0 0 500000>,	/* 500us = 2kHz */
-				<&ehrpwm0 1 500000>;
-						
-		pwm-names = "tb6612-pwm";
+		//pwm-names = "tb6612-pwm";
 	};
 };
 

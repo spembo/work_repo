@@ -58,7 +58,7 @@ struct tb6612_drv {
 /*	unsigned int duty = br * period / max_br;*/
 /*	struct pwm_device *pwm;*/
 
-/*	/* request pwm device with the consumer name */*/
+	/* request pwm device with the consumer name */
 /*	if (!lp->pwm) {*/
 /*		pwm = devm_pwm_get(lp->dev, lp->chipname);*/
 /*		if (IS_ERR(pwm))*/
@@ -97,11 +97,13 @@ static int tb6612_probe(struct platform_device * pdev)
 {
 	struct pwm_device * pwm;
 	
-	pwm = pwm_get(&pdev->dev, "tb6612-pwm");
+pr_info("TB6612 - pwm = %p\n", pwm);
+	pwm = pwm_get(&pdev->dev, "tb6612-pwms");
+pr_info("TB6612 - pwm = %p\n", pwm);
+
 	if (IS_ERR(pwm)) {
-		pr_err("unable to request PWM \n");
+		pr_err("TB6612 - unable to request PWM \n");
 	}
-	
 
     pr_info("TB6612 - probe() success\n");
 	return 0;
@@ -119,7 +121,7 @@ static const struct platform_device_id tb6612_id[] = {
 	{ .name = "tb6612", .driver_data = 0 },
 	{ },
 };
-MODULE_DEVICE_TABLE(i2c, tb6612_id);
+MODULE_DEVICE_TABLE(platform, tb6612_id);
 
 
 static const struct of_device_id tb6612_dt_match[] = {
