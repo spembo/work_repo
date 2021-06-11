@@ -18,7 +18,7 @@
 /* **** DEVICE TREE PIN DETAILS ***********************************************
  * FUNC			PIN		H-PIN	MODE	MODE_FUNC	PIN-NAME
  * ----------------------------------------------------------------------------
- * STBY			D14		P9_41	7		GPIO0_20	AM335X_PIN_MCASP0_AXR1
+ * STBY			D14		P9_41	7		GPIO0_20	AM335X_PIN_XDMA_EVENT_INTR1
  * DIR_1A		U18		P9_12	7		GPIO1_28	AM335X_PIN_GPMC_BEN1
  * DIR_1B		U17		P9_13	7		GPIO0_31	AM335X_PIN_GPMC_WPN
  * DIR_2A		R13		P9_15	7		GPIO1_16	AM335X_PIN_GPMC_A0
@@ -89,6 +89,8 @@ struct tb6612_drv {
  * sysfs interface
  ******************************************************************************/
 
+/* https://github.com/SaadAhmad/beaglebone-black-cpp-PWM */
+
 
 /*******************************************************************************
  * driver / device registration
@@ -96,16 +98,15 @@ struct tb6612_drv {
 static int tb6612_probe(struct platform_device * pdev)
 {
 	struct pwm_device * pwm;
-	
-pr_info("TB6612 - pwm = %p\n", pwm);
-	pwm = pwm_get(&pdev->dev, "tb6612-pwms");
-pr_info("TB6612 - pwm = %p\n", pwm);
+
+	pwm = pwm_get(&pdev->dev, "pwm_pinA");
 
 	if (IS_ERR(pwm)) {
 		pr_err("TB6612 - unable to request PWM \n");
 	}
 
-    pr_info("TB6612 - probe() success\n");
+
+    pr_info("TB6612 - probe() complete\n");
 	return 0;
 }
 

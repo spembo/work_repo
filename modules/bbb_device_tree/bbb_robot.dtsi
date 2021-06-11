@@ -30,35 +30,36 @@
 						<&gpio1 16 GPIO_ACTIVE_HIGH>, /* dir_2A */
 						<&gpio2 17 GPIO_ACTIVE_HIGH>; /* dir_2B */
 		
-		tb6612-pwms =   <&ehrpwm0 0 500000>;
-		/*pwm_pinA: pwm_pinA {
-        	pwms = <&ehrpwm0 0 500000>;
+		pwm_pinA {
+        	pwms = <&ehrpwm1 0 500000>;
+			pwm-names 	= "PWM_P9_14";
         };
 
-        pwm_pinB: pwm_pinB {
-        	pwms = <&ehrpwm0 1 500000>;
-        };*/
+        pwm_pinB {
+        	pwms = <&ehrpwm1 1 500000>;
+			pwm-names 	= "PWM_P9_16";
+        };
+
 
 		//tb6612-pwms =   <&ehrpwm0 0 500000>,	/* 500us = 2kHz */
-		//				<&ehrpwm0 1 500000>;
-						
+		//				<&ehrpwm0 1 500000>;		
 		//pwm-names = "tb6612-pwm";
 	};
 };
 
 
-/* AM335X_PIN_LCD_DATA11 set in am335x-boneblack-common.dtsi       */
+/* AM335X_PIN_LCD_DATA11 originally set in am335x-boneblack-common.dtsi       */
 /* This has been commented out to remove conflict and declare here */
 &am33xx_pinmux {
 	tb6612_pinmux: tb6612_pinmux {
 		pinctrl-single,pins = <
-			AM33XX_PADCONF(AM335X_PIN_XDMA_EVENT_INTR1, PIN_OUTPUT_PULLDOWN, MUX_MODE7)	// $PINS 60
-			AM33XX_PADCONF(AM335X_PIN_GPMC_BEN1, PIN_OUTPUT_PULLDOWN, MUX_MODE7)		// $PINS 
-			AM33XX_PADCONF(AM335X_PIN_GPMC_WPN, PIN_OUTPUT_PULLDOWN, MUX_MODE7)			// $PINS 
-			AM33XX_PADCONF(AM335X_PIN_GPMC_A0, PIN_OUTPUT_PULLDOWN, MUX_MODE7)			// $PINS 
-			AM33XX_PADCONF(AM335X_PIN_LCD_DATA11, PIN_OUTPUT_PULLDOWN, MUX_MODE7)		// $PINS 51
-			AM33XX_PADCONF(AM335X_PIN_GPMC_A2, PIN_OUTPUT_PULLDOWN, MUX_MODE6)			// $PINS 
-			AM33XX_PADCONF(AM335X_PIN_GPMC_A3, PIN_OUTPUT_PULLDOWN, MUX_MODE6)			// $PINS 
+			AM33XX_PADCONF(AM335X_PIN_XDMA_EVENT_INTR1, PIN_OUTPUT_PULLDOWN, MUX_MODE7)	// STBY    - $PINS 60
+			AM33XX_PADCONF(AM335X_PIN_GPMC_BEN1, PIN_OUTPUT_PULLDOWN, MUX_MODE7)		// DIR_1A  - $PINS 
+			AM33XX_PADCONF(AM335X_PIN_GPMC_WPN, PIN_OUTPUT_PULLDOWN, MUX_MODE7)			// DIR_1B  - $PINS 
+			AM33XX_PADCONF(AM335X_PIN_GPMC_A0, PIN_OUTPUT_PULLDOWN, MUX_MODE7)			// DIR_2A  - $PINS 
+			AM33XX_PADCONF(AM335X_PIN_LCD_DATA11, PIN_OUTPUT_PULLDOWN, MUX_MODE7)		// DIR_2B  - $PINS 51
+			AM33XX_PADCONF(AM335X_PIN_GPMC_A2, PIN_OUTPUT_PULLDOWN, MUX_MODE6)			// PWM_1A  - $PINS 
+			AM33XX_PADCONF(AM335X_PIN_GPMC_A3, PIN_OUTPUT_PULLDOWN, MUX_MODE6)			// PWM_1B  - $PINS 
 		>;
 	};
 };

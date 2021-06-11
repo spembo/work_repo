@@ -1,0 +1,93 @@
+I have a beaglebone black and am trying to write a driver to control the robotics
+cape TB6612 motor driver chip. This requries a few GPIO lines, and a couple of PWMs.
+The GPIOs are fine  however I cannot get the driver to find the PWM entry on the
+device tree.
+
+I have created a helloWorld tpye module just to be able to get this PWM pairing working
+before integrating the working code back into my main driver.
+
+So, I have the relevant parts of the device tree entry below.
+When I use the command:
+
+dtc -I fs -O dts /sys/firmware/devicetree/base | grep tb6612
+
+on the running kernel I see everything I expect so I know the device tree is intact at least
+(however maybe the syntax is off?)
+
+
+/* bbb_robot.dtsi */
+/ {
+	tb6612 {
+		pinctrl-names = "default";
+		pinctrl-0 = <&tb6612_pinmux>;
+
+		compatible = "tos,tb6612";
+
+		tb6612-gpios = 	<&gpio0 20 GPIO_ACTIVE_HIGH>, /* stby   */
+						<&gpio1 28 GPIO_ACTIVE_HIGH>, /* dir_1A */
+						<&gpio0 31 GPIO_ACTIVE_HIGH>, /* dir_1B */
+						<&gpio1 16 GPIO_ACTIVE_HIGH>, /* dir_2A */
+						<&gpio2 17 GPIO_ACTIVE_HIGH>; /* dir_2B */
+		
+		tb6612-pwms =   <&ehrpwm0 0 500000>,	/* 500us = 2kHz */
+						<&ehrpwm0 1 500000>;
+	};
+};
+
+/* AM335X_PIN_LCD_DATA11 set in am335x-boneblack-common.dtsi       */
+/* This has been commented out to remove conflict and declare here instead */
+&am33xx_pinmux {
+	tb6612_pinmux: tb6612_pinmux {
+		pinctrl-single,pins = <
+			AM33XX_PADCONF(AM335X_PIN_XDMA_EVENT_INTR1, PIN_OUTPUT_PULLDOWN, MUX_MODE7)	// $PINS 60
+			AM33XX_PADCONF(AM335X_PIN_GPMC_BEN1, PIN_OUTPUT_PULLDOWN, MUX_MODE7)		// $PINS 
+			AM33XX_PADCONF(AM335X_PIN_GPMC_WPN, PIN_OUTPUT_PULLDOWN, MUX_MODE7)			// $PINS 
+			AM33XX_PADCONF(AM335X_PIN_GPMC_A0, PIN_OUTPUT_PULLDOWN, MUX_MODE7)			// $PINS 
+			AM33XX_PADCONF(AM335X_PIN_LCD_DATA11, PIN_OUTPUT_PULLDOWN, MUX_MODE7)		// $PINS 51
+			AM33XX_PADCONF(AM335X_PIN_GPMC_A2, PIN_OUTPUT_PULLDOWN, MUX_MODE6)			// $PINS 
+			AM33XX_PADCONF(AM335X_PIN_GPMC_A3, PIN_OUTPUT_PULLDOWN, MUX_MODE6)			// $PINS 
+		>;
+	};
+};
+
+
+/* am335x-boneblack.dts */
+/dts-v1/;
+
+#include "am33xx.dtsi"
+#include "am335x-bone-common.dtsi"
+#include "am335x-boneblack-common.dtsi"
+#include "bbb_robot.dtsi"
+
+
+My probe function contains the following code. The probe does get called but the pwm_device
+is never found.
+
+static int tb6612_probe(struct platform_device * pdev)
+{
+	struct pwm_device * pwm;
+	
+	pwm = pwm_get(&pdev->dev, "tb6612");
+	if (IS_ERR(pwm)) {
+		pr_err("TB6612 - unable to request PWM \n");
+	}
+
+
+    pr_info("TB6612 - probe() complete\n");
+	return 0;
+}
+
+
+So, device driver gurus... can any of you tell me where is my obvious mistake?
+
+
+
+
+
+
+https://github.com/SaadAhmad/beaglebone-black-cpp-PWM
+
+
+
+
+

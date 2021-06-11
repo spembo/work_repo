@@ -30,7 +30,7 @@
  * **** DEVICE TREE PIN DETAILS ***********************************************
  * FUNC			PIN		H-PIN	MODE	MODE_FUNC	PIN-NAME
  * ----------------------------------------------------------------------------
- * STBY			D14		P9_41	7		GPIO0_20	AM335X_PIN_MCASP0_AXR1
+ * STBY			D14		P9_41	7		GPIO0_20	AM335X_PIN_XDMA_EVENT_INTR1
  * DIR_1A		U18		P9_12	7		GPIO1_28	AM335X_PIN_GPMC_BEN1
  * DIR_1B		U17		P9_13	7		GPIO0_31	AM335X_PIN_GPMC_WPN
  * DIR_2A		R13		P9_15	7		GPIO1_16	AM335X_PIN_GPMC_A0
