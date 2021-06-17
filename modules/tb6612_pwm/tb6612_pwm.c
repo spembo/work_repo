@@ -37,7 +37,9 @@
  * qcom-msm8974-sony-xperia-castor.dts:532:			compatible = "ti,lp8556";
  ******************************************************************************/
 
-
+/* NOTE:
+ * Ensure that the EHRPWM & EPWMSS are enabled in the kernel config 
+ */
 
 
 /*******************************************************************************
@@ -97,12 +99,39 @@ struct tb6612_drv {
  ******************************************************************************/
 static int tb6612_probe(struct platform_device * pdev)
 {
+	struct device_node * node;
 	struct pwm_device * pwm;
 
-	pwm = pwm_get(&pdev->dev, "pwm_pinA");
+	
+	pr_info("pdev->name is %s\n", pdev->name);
+	pr_info("pdev->dev.of_node->name is %s\n", pdev->dev.of_node->name);
+
+	node = of_find_node_by_name(NULL, "tb6612");
+	pr_info("node name is %s\n", node->name);
+	pr_info("node full_name is %s\n", node->full_name);
+
+	pwm = devm_pwm_get(&pdev->dev, NULL);    
+// set to NULL: ENOENT 2 No such file or directory:  "can't parse "pwms" property": 
+// set to tb6612: EINVAL 22 Invalid argument
+// set to pwm_pinA: EINVAL 22 Invalid argument
+// set to /tb6612/pwm_pinA: EINVAL 22 Invalid argument
+// set to node->full_name: EINVAL 22 Invalid argument
+
+/*[ 2412.633925] pdev->name is tb6612*/
+/*[ 2412.633937] pdev->dev.of_node->name is tb6612*/
+/*[ 2412.634196] node name is pwm_pinA*/
+/*[ 2412.634200] node full_name is pwm_pinA*/
+/*[ 2412.634211] TB6612 - unable to request PWM */
+/*[ 2412.641840] tb6612: probe of tb6612 failed with error -22*/
+
+// changed device tree to only PWM -------------->
+// tb6612: probe of tb6612 failed with error -61
+
+
 
 	if (IS_ERR(pwm)) {
 		pr_err("TB6612 - unable to request PWM \n");
+		return PTR_ERR(pwm);
 	}
 
 

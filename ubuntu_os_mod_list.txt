@@ -59,12 +59,11 @@ scp testdriver.ko ubuntu@192.168.1.80:/home/ubuntu/
 read out running device tree:
     dtc -I fs -O dts /sys/firmware/devicetree/base
 
-
-
-
-
-
-
+compile new dts:
+	cd bbb_ubuntu/bb-kernel/KERNEL
+	make ARCH=arm CROSS_COMPILE=arm-none-eabi- dtbs
+	cd arch/arm/boot/dts/
+	scp am335x-boneblack.dtb root@192.168.1.80:/boot/dtbs/5.4.115-bone49
 
 
 

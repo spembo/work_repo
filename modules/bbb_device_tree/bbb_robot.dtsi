@@ -16,36 +16,51 @@
 	};
 };
 
+/* ensure the SOC PWMs are enabled */
+&ehrpwm1 {
+    status = "okay";
+};
 
+&epwmss1 {
+    status = "okay";
+};
+
+/* tb6612 node */
 / {
 	tb6612 {
+		compatible = "tos,tb6612";
 		pinctrl-names = "default";
 		pinctrl-0 = <&tb6612_pinmux>;
 
-		compatible = "tos,tb6612";
-
-		tb6612-gpios = 	<&gpio0 20 GPIO_ACTIVE_HIGH>, /* stby   */
-						<&gpio1 28 GPIO_ACTIVE_HIGH>, /* dir_1A */
-						<&gpio0 31 GPIO_ACTIVE_HIGH>, /* dir_1B */
-						<&gpio1 16 GPIO_ACTIVE_HIGH>, /* dir_2A */
-						<&gpio2 17 GPIO_ACTIVE_HIGH>; /* dir_2B */
-		
-		pwm_pinA {
-        	pwms = <&ehrpwm1 0 500000>;
-			pwm-names 	= "PWM_P9_14";
-        };
-
-        pwm_pinB {
-        	pwms = <&ehrpwm1 1 500000>;
-			pwm-names 	= "PWM_P9_16";
-        };
-
-
-		//tb6612-pwms =   <&ehrpwm0 0 500000>,	/* 500us = 2kHz */
-		//				<&ehrpwm0 1 500000>;		
-		//pwm-names = "tb6612-pwm";
+    	pwms = <&ehrpwm1 0 0 1>;
+		pwm-names 	= "PWM_P9_14";
+		enabled     = <0>;
+		duty        = <0>;
+		status      = "okay";
 	};
 };
+
+/*/ {*/
+/*	tb6612 {*/
+/*		compatible = "tos,tb6612";*/
+/*		pinctrl-names = "default";*/
+/*		pinctrl-0 = <&tb6612_pinmux>;*/
+
+/*		tb6612-gpios = 	<&gpio0 20 GPIO_ACTIVE_HIGH>, /* stby   */*/
+/*						<&gpio1 28 GPIO_ACTIVE_HIGH>, /* dir_1A */*/
+/*						<&gpio0 31 GPIO_ACTIVE_HIGH>, /* dir_1B */*/
+/*						<&gpio1 16 GPIO_ACTIVE_HIGH>, /* dir_2A */*/
+/*						<&gpio2 17 GPIO_ACTIVE_HIGH>; /* dir_2B */*/
+/*		*/
+/*		pwm_pinA {*/
+/*        	pwms = <&ehrpwm1 1 0 1>;*/
+/*			pwm-names 	= "PWM_P9_14";*/
+/*			enabled     = <0>;*/
+/*			duty        = <0>;*/
+/*			status      = "okay";*/
+/*        };*/
+/*	};*/
+/*};*/
 
 
 /* AM335X_PIN_LCD_DATA11 originally set in am335x-boneblack-common.dtsi       */
